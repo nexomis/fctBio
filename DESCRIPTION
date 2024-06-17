@@ -1,0 +1,54 @@
+Package: fctBio
+Type: Package
+Title: Objects and methods for functional biology analysis
+Version: 1.0.0
+Author: Julien FOURET <jfouret@nexomis.io>
+biocViews:
+Imports: 
+    assertthat,
+    collapse,
+    cowplot,
+    data.table,
+    dendextend,
+    dplyr,
+    fastmatch,
+    ggdendro,
+    ggh4x,
+    ggplot2,
+    logging,
+    magrittr,
+    openxlsx,
+    parallel,
+    philentropy,
+    purrr,
+    pvclust,
+    R6,
+    stringr (>= 1.5.0),
+    tibble,
+    tidyselect
+Maintainer: Julien FOURET <jfouret@nexomis.io>
+Description: This package provide different objects and methods to perform
+  functional analysis in biology.
+License: proprietary
+Encoding: UTF-8
+LazyData: true
+Suggests: 
+    covr,
+    DT,
+    htmltools,
+    matrixStats,
+    testthat (>= 3.0.0),
+    tibble,
+    vdiffr
+VignetteBuilder: knitr, rmarkdown
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Collate: 
+    'fctBio.r'
+    'utils.r'
+    'class_NestedEnrich.r'
+    'load_ann_space.r'
+    'query_genes.r'
+Depends: 
+    R (>= 4.0)
+RoxygenNote: 7.3.1
