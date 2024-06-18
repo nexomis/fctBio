@@ -1481,11 +1481,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         by = .(gene)]
       dt_x_group <- dt_gene_x_design[, .(x_group = data.table::uniqueN(
         interaction(batch, group, drop = TRUE))), by = .(gene)]
-      summary_dt <- data.table::merge(dt_intra_x_term,
+      summary_dt <- data.table::merge.data.table(dt_intra_x_term,
         dt_extra_x_term, by = "gene")
-      summary_dt <- data.table::merge(summary_dt, dt_x_cluster, by = "gene")
-      summary_dt <- data.table::merge(summary_dt, dt_x_batch, by = "gene")
-      summary_dt <- data.table::merge(summary_dt, dt_x_group, by = "gene")
+      summary_dt <- data.table::merge.data.table(summary_dt, dt_x_cluster, by = "gene")
+      summary_dt <- data.table::merge.data.table(summary_dt, dt_x_batch, by = "gene")
+      summary_dt <- data.table::merge.data.table(summary_dt, dt_x_group, by = "gene")
 
       summary_dt[, gene := private$gene_ids[gene]]
 
