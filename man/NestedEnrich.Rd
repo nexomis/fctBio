@@ -543,6 +543,8 @@ Prepare a translate dictionary with the different type of possible ids.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$get_label_dict(
   to = "reduced_label_with_code",
+  append_cluster_id = FALSE,
+  append_sep = "#",
   reduced_label_max_size = 40
 )}\if{html}{\out{</div>}}
 }
@@ -557,7 +559,12 @@ Prepare a translate dictionary with the different type of possible ids.
 \item "reduced_label_with_code"
 \item "reduced_label_with_id"
 \item "full_name"
+\item "empty"
 }}
+
+\item{\code{append_cluster_id}}{append clutser id to labels, default is false}
+
+\item{\code{append_sep}}{separator between ids}
 
 \item{\code{reduced_label_max_size}}{maximum length for term label
 number of gene per term is used for ordering.}

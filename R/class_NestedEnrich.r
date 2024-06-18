@@ -1132,12 +1132,17 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #'  - "reduced_label_with_code"
     #'  - "reduced_label_with_id"
     #'  - "full_name"
+    #'  - "empty"
+    #' @param append_cluster_id append clutser id to labels, default is false
+    #' @param append_sep separator between ids
     #' @param reduced_label_max_size maximum length for term label
     #' number of gene per term is used for ordering.
     #' @return translte diuctionary
     get_label_dict = function(to = "reduced_label_with_code",
+      append_cluster_id = FALSE,
+      append_sep = "#",
       reduced_label_max_size = 40) {
-      setNames(switch(to,
+      results <- setNames(switch(to,
         id = private$term_ids,
         reduced_label = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
@@ -1154,8 +1159,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           private$term_ids,
           sep = ":"
         ),
-        full_name = private$term_names
+        full_name = private$term_names,
+        empty = rep("", length(private$term_ids))
       ), private$term_ids)
+      if (append_cluster_id) {
+        results = paste0(results, ,private$clusters[private$term_ids])
+        names(results) = private$term_ids
+      }
+      results
     },
 
     #' @description
