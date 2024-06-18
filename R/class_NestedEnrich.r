@@ -933,7 +933,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
             linewidth = rect_linewidth,
             fill = NA
           )  +
-        ggplot2::guides(color = "none")
+        ggplot2::guides(color = "none") +
+        ggplot2::geom_label(data = rect_data, 
+          mapping = ggplot2::aes((.data$xmax + .data$xmin)/2, 
+            .data$ymax, label = .data$cluster),
+        fill="#FFFFFFD0")
       }
       return(dend)
     },
@@ -1504,7 +1508,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         summary_dt[, (new_name_label) := as.character(id2name[ID])]
       }
 
-      return(dplyr::arrange(cterm_gene_cluster, - .data[["# in cluster"]]))
+      return(dplyr::arrange(summary_dt, - .data[["# in cluster"]]))
     },
 
     #' @description
