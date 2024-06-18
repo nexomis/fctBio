@@ -1163,7 +1163,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         empty = rep("", length(private$term_ids))
       ), private$term_ids)
       if (append_cluster_id) {
-        results = paste0(results, ,private$clusters[private$term_ids])
+        results = paste0(results, append_sep, private$clusters[private$term_ids])
         names(results) = private$term_ids
       }
       results
