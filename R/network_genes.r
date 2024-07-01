@@ -56,3 +56,44 @@ extend_network_trrust <- function(trrust_db = system.file("extdata/human_network
   
   return(unique(results))
 }
+
+
+
+#### DRAFT: ressource to implement 'detailled_output' option for 'extend_network_trrust' function
+# # import DB from tab file
+# trrust_data <- read.delim("C:/Users/abdel/Downloads/trrust_rawdata.human.tsv", header = FALSE,
+#                           col.names = c("TranscriptionFactor", "TargetGene", "RegulationMode", "PMID"))
+# 
+# # exemple input genes
+# input_genes <- c("BAX", "MYC", "TP53")
+# 
+# ### Format 1
+# relations_as_targets <- trrust_data[trrust_data$TargetGene %in% input_genes, ]
+# relations_as_targets_df1 <- data.frame(Input_gn = relations_as_targets$TargetGene,
+#                                        Direction = "by",
+#                                        Pairs_gn = relations_as_targets$TranscriptionFactor,
+#                                        Mode = relations_as_targets$RegulationMode,
+#                                        Ref_PMID = relations_as_targets$PMID,
+#                                        stringsAsFactors = FALSE)
+# 
+# # add input genes without hit
+# no_relation_genes <- setdiff(input_genes, unique(relations_as_targets$TargetGene))
+# no_relation_df1 <- data.frame(Input_gn = no_relation_genes, Direction = "NA", Pairs_gn = "NA", Mode = "NA", Ref_PMID = "NA", stringsAsFactors = FALSE)
+# dataframe_1 <- rbind(relations_as_targets_df1, no_relation_df1)
+# 
+# ### Format 2
+# relations_as_tfs <- trrust_data[trrust_data$TranscriptionFactor %in% input_genes, ]
+# relations_as_tfs_df2 <- data.frame(Input_gn = relations_as_tfs$TranscriptionFactor,
+#                                    Type = "TF",
+#                                    TF_gn = relations_as_tfs$TranscriptionFactor,
+#                                    Target_gn = relations_as_tfs$TargetGene,
+#                                    RegulationMode = relations_as_tfs$RegulationMode,
+#                                    Ref_PMID = relations_as_tfs$PMID,
+#                                    stringsAsFactors = FALSE)
+# 
+# # add input genes without hit
+# no_relation_tfs <- setdiff(input_genes, unique(relations_as_tfs$TranscriptionFactor))
+# no_relation_df2 <- data.frame(Input_gn = no_relation_tfs, Type = "NA", TF_gn = "NA", Target_gn = "NA", RegulationMode = "NA", Ref_PMID = "NA", stringsAsFactors = FALSE)
+# dataframe_2 <- rbind(relations_as_tfs_df2, no_relation_df2)
+# 
+# 
