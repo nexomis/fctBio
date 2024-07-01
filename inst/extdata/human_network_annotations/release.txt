@@ -1,0 +1,4 @@
+trrust:
+  cmdline: wget -q -O trrust/data.tab 'https://www.grnpedia.org/trrust/data/trrust_rawdata.human.tsv' && sed -i "1 i\tf\ttarget\tregulation_mode\tref_PMID" trrust/data.tab
+  release: human_16-04-2018
+  date: 27-06-2018

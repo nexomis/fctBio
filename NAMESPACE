@@ -3,6 +3,7 @@
 export(NestedEnrich)
 export(THEME_NEXOMIS)
 export(enrich)
+export(extend_network_trrust)
 export(load_ann_space)
 export(query_genes)
 export(query_genes_choices)

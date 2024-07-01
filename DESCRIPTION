@@ -48,6 +48,7 @@ Collate:
     'utils.r'
     'class_NestedEnrich.r'
     'load_ann_space.r'
+    'network_genes.r'
     'query_genes.r'
 Depends: 
     R (>= 4.0)
