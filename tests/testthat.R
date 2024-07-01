@@ -10,5 +10,5 @@ library(testthat)
 library(fctBio)
 
 test_check("fctBio")
-# OR: test_dir(paste(system.file(package = "fctBio"), "/tests/testthat/", sep=""))
+# OR: test_dir("tests/testthat/")
 # OR: devtools::test()

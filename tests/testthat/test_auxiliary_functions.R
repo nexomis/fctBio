@@ -1,4 +1,4 @@
-######## extend_network_trrust ########
+######## extend_trrust ########
 
 # TRRUST database path
 file_trrust <- system.file("extdata", 
@@ -6,31 +6,31 @@ file_trrust <- system.file("extdata",
                            package = "fctBio")
 
 # Tests definition
-test_that("extend_network_trrust function tests", {
+test_that("extend_trrust function tests", {
   
   # Base case
   genes <- c("BAX", "MYC", "TP53", "XXX_NEXOMIS_XXX")
-  extended_genes <- extend_network_trrust(trrust_db = file_trrust,
-                                         input_genes = genes,
-                                         add_tf = TRUE,
-                                         add_target = TRUE,
-                                         keep_input_without_hit = TRUE,
-                                         ignore_single_pmid = FALSE)
+  extended_genes <- extend_trrust(trrust_db = file_trrust,
+                                 input_genes = genes,
+                                 add_tf = TRUE,
+                                 add_target = TRUE,
+                                 keep_input_without_hit = TRUE,
+                                 ignore_single_pmid = FALSE)
   results <- c("BAX", "MYC", "TP53", "XXX_NEXOMIS_XXX", "AATF", "ABL1", "AHR", "APC", "AR", "ATF3", "ATM", "BCL6", "BDP1", "BIN1", "BRCA1", "CEBPA", "CEBPE", "CHD8", "CNBP", "CREBBP", "CTCF", "CTNNB1", "DLX5", "DMAP1", "DNMT1", "E2F1", "E2F4", "E2F5", "EGR1", "ELF4", "ELL", "ENO1", "EP300", "ERCC2", "ESR1", "ETS1", "ETS2", "EZH2", "FOS", "FOXA1", "FOXM1", "FUBP1", "GFI1", "HDAC1", "HDAC11", "HDAC2", "HDAC3", "HDAC9", "HIC1", "HIF1A", "HIPK2", "HMGA1", "HNF4A", "HOXA1", "HOXA10", "IFI16", "IKBKB", "ING1", "ING4", "IRF1", "JUN", "KLF4", "L3MBTL1", "LEF1", "MAX", "MDM4", "MLLT10", "MLLT3", "MTA1", "MXI1", "MYB", "MYBL2", "MYCN", "NF1", "NFKB1", "NR3C1", "NUPR1", "PAX2", "PAX5", "PAX8", "PER1", "PGR", "PML", "PPARG", "PRDM1", "PTTG1", "RB1", "RBL1", "RELA", "RFX1", "RUNX3", "RUVBL1", "SIRT1", "SMAD3", "SMAD4", "SMAD7", "SNIP1", "SOX6", "SP1", "SRSF1", "STAT1", "STAT3", "STAT4", "TBL1X", "TBP", "TCF3", "TCF4", "TFDP1", "TLX1", "TP63", "TP73", "VHL", "WDR5", "WT1", "WWTR1", "YEATS4", "YY1", "ZBTB2", "ZBTB7A", "ZNF300", "ZNF382", "ASS1", "AXIN2", "BAG2", "BCL2", "BMI1", "BRD7", "CAD", "CBFB", "CCNA2", "CCNB1", "CCND1", "CCND2", "CCNE1", "PROM1", "CD33", "CD38", "CDC25C", "CDC34", "CDCA7", "CDH3", "CDK2", "CDK4", "CDK6", "CDKN1A", "CFLAR", "CHEK1", "CHEK2", "CXCR4", "CYP3A4", "DDX18", "DKK1", "EBNA1BP2", "FASLG", "FMR1", "FTH1P18", "FUT3", "GATA1", "GATA4", "HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G", "HNRNPA1", "HNRNPA2B1", "HSPA4", "ID2", "IER3", "IFNA1", "IGF2BP1", "IGK", "IL6", "IPO7", "JUNB", "KRAS", "LDHA", "MAPK1", "MME", "MST1", "MTDH", "NDRG1", "NFE2", "NOL7", "ODC1", "PCNA", "PGK1", "PMAIP1", "PRDX3", "PRODH", "PTBP1", "RCC1", "SART3", "SFRP1", "SHMT1", "ST3GAL1", "ST3GAL3", "ST3GAL4", "SURF1", "SURF2", "TERT", "TFAM", "TFAP4", "TFRC", "TNFRSF10B", "TOP1MT", "UBE2C", "VEGFA", "WRN", "XPO1", "ABCB1", "AFP", "AKT1", "ALKBH2", "ALOX5", "ANKRD1", "ANTXR1", "APAF1", "APCS", "AQP3", "ADGRB1", "BBC3", "BCL2L1", "BCL3", "BDKRB2", "BGLAP", "BIRC5", "BRCA2", "BTG2", "BTG3", "BTS1", "CABLES1", "CARM1", "CASP1", "CASP3", "CAV1", "CCNA1", "CCNB2", "CD82", "CDK1", "CDKN1B", "CHUK", "CKM", "CRYAB", "CTSD", "CYFIP2", "DDB1", "DDB2", "DUSP1", "E2F3", "E2F7", "EGFR", "EPHA2", "FAS", "FDXR", "FGF2", "FLT1", "FOXO3", "FRMD5", "FUS", "GADD45A", "GC", "GDF15", "GLI2", "GML", "GPNMB", "GSTP1", "HRAS", "HSF1", "HSP90AB1", "ID1", "IGF1R", "IGFBP3", "KLF2", "MAD1L1", "MAP4", "MCL1", "MCM7", "MDM2", "MET", "MGMT", "MKI67", "MMP1", "MMP2", "MUC2", "NKX3-1", "NLRC4", "NME1", "OGG1", "PDGFRB", "PERP", "PIAS3", "PLAGL1", "PLK1", "PLK3", "POLD1", "PPARGC1A", "PTPA", "PRC1", "PRG3", "PRKAB1", "PTEN", "PTPN13", "RAD51B", "RASSF1", "RECQL4", "REEP5", "RRM2B", "S100B", "SFN", "SIAH1", "SIVA1", "SLC2A1", "SLC6A6", "SSTR2", "TBXAS1", "TCEAL1", "TCF7L2", "THBS1", "TNFRSF10A", "TP53I3", "TRIM22", "TYMS", "UHRF1", "UHRF1BP1", "VCAN", "XPC")
   expect_identical(extended_genes, results)
   
   # Add only TFs and keeping all input genes
-  extended_genes <- extend_network_trrust(trrust_db = file_trrust,
-                                                  input_genes = genes,
-                                                  add_tf = TRUE,
-                                                  add_target = FALSE,
-                                                  keep_input_without_hit = TRUE,
-                                                  ignore_single_pmid = FALSE)
+  extended_genes <- extend_trrust(trrust_db = file_trrust,
+                                  input_genes = genes,
+                                  add_tf = TRUE,
+                                  add_target = FALSE,
+                                  keep_input_without_hit = TRUE,
+                                  ignore_single_pmid = FALSE)
   results <- c("BAX", "MYC", "TP53", "XXX_NEXOMIS_XXX", "AATF", "ABL1", "AHR", "APC", "AR", "ATF3", "ATM", "BCL6", "BDP1", "BIN1", "BRCA1", "CEBPA", "CEBPE", "CHD8", "CNBP", "CREBBP", "CTCF", "CTNNB1", "DLX5", "DMAP1", "DNMT1", "E2F1", "E2F4", "E2F5", "EGR1", "ELF4", "ELL", "ENO1", "EP300", "ERCC2", "ESR1", "ETS1", "ETS2", "EZH2", "FOS", "FOXA1", "FOXM1", "FUBP1", "GFI1", "HDAC1", "HDAC11", "HDAC2", "HDAC3", "HDAC9", "HIC1", "HIF1A", "HIPK2", "HMGA1", "HNF4A", "HOXA1", "HOXA10", "IFI16", "IKBKB", "ING1", "ING4", "IRF1", "JUN", "KLF4", "L3MBTL1", "LEF1", "MAX", "MDM4", "MLLT10", "MLLT3", "MTA1", "MXI1", "MYB", "MYBL2", "MYCN", "NF1", "NFKB1", "NR3C1", "NUPR1", "PAX2", "PAX5", "PAX8", "PER1", "PGR", "PML", "PPARG", "PRDM1", "PTTG1", "RB1", "RBL1", "RELA", "RFX1", "RUNX3", "RUVBL1", "SIRT1", "SMAD3", "SMAD4", "SMAD7", "SNIP1", "SOX6", "SP1", "SRSF1", "STAT1", "STAT3", "STAT4", "TBL1X", "TBP", "TCF3", "TCF4", "TFDP1", "TLX1", "TP63", "TP73", "VHL", "WDR5", "WT1", "WWTR1", "YEATS4", "YY1", "ZBTB2", "ZBTB7A", "ZNF300", "ZNF382")
   expect_identical(extended_genes, results)
   
   # Add only Targets and keeping all input genes
-  extended_genes <- extend_network_trrust(trrust_db = file_trrust,
+  extended_genes <- extend_trrust(trrust_db = file_trrust,
                                                       input_genes = genes,
                                                       add_tf = FALSE,
                                                       add_target = TRUE,
@@ -40,22 +40,22 @@ test_that("extend_network_trrust function tests", {
   expect_identical(extended_genes, results)
   
   # Add only TFs (without force to keep all input genes)
-  extended_genes <- extend_network_trrust(trrust_db = file_trrust,
-                                                 input_genes = genes,
-                                                 add_tf = TRUE,
-                                                 add_target = FALSE,
-                                                 keep_input_without_hit = FALSE,
-                                                 ignore_single_pmid = FALSE)
+  extended_genes <- extend_trrust(trrust_db = file_trrust,
+                                  input_genes = genes,
+                                  add_tf = TRUE,
+                                  add_target = FALSE,
+                                  keep_input_without_hit = FALSE,
+                                  ignore_single_pmid = FALSE)
   results <- c("AATF", "ABL1", "AHR", "APC", "AR", "ATF3", "ATM", "BCL6", "BDP1", "BIN1", "BRCA1", "CEBPA", "CEBPE", "CHD8", "CNBP", "CREBBP", "CTCF", "CTNNB1", "DLX5", "DMAP1", "DNMT1", "E2F1", "E2F4", "E2F5", "EGR1", "ELF4", "ELL", "ENO1", "EP300", "ERCC2", "ESR1", "ETS1", "ETS2", "EZH2", "FOS", "FOXA1", "FOXM1", "FUBP1", "GFI1", "HDAC1", "HDAC11", "HDAC2", "HDAC3", "HDAC9", "HIC1", "HIF1A", "HIPK2", "HMGA1", "HNF4A", "HOXA1", "HOXA10", "IFI16", "IKBKB", "ING1", "ING4", "IRF1", "JUN", "KLF4", "L3MBTL1", "LEF1", "MAX", "MDM4", "MLLT10", "MLLT3", "MTA1", "MXI1", "MYB", "MYBL2", "MYC", "MYCN", "NF1", "NFKB1", "NR3C1", "NUPR1", "PAX2", "PAX5", "PAX8", "PER1", "PGR", "PML", "PPARG", "PRDM1", "PTTG1", "RB1", "RBL1", "RELA", "RFX1", "RUNX3", "RUVBL1", "SIRT1", "SMAD3", "SMAD4", "SMAD7", "SNIP1", "SOX6", "SP1", "SRSF1", "STAT1", "STAT3", "STAT4", "TBL1X", "TBP", "TCF3", "TCF4", "TFDP1", "TLX1", "TP53", "TP63", "TP73", "VHL", "WDR5", "WT1", "WWTR1", "YEATS4", "YY1", "ZBTB2", "ZBTB7A", "ZNF300", "ZNF382")
   expect_identical(extended_genes, results)
 
   # Base case but ingoring relation supported by one single PMID ref
-  extended_genes <- extend_network_trrust(trrust_db = file_trrust,
-                                                            input_genes = genes,
-                                                            add_tf = TRUE,
-                                                            add_target = TRUE,
-                                                            keep_input_without_hit = TRUE,
-                                                            ignore_single_pmid = TRUE)
+  extended_genes <- extend_trrust(trrust_db = file_trrust,
+                                  input_genes = genes,
+                                  add_tf = TRUE,
+                                  add_target = TRUE,
+                                  keep_input_without_hit = TRUE,
+                                  ignore_single_pmid = TRUE)
   results <- c("BAX", "MYC", "TP53", "XXX_NEXOMIS_XXX", "AHR", "BRCA1", "CTCF", "CTNNB1", "E2F1", "ENO1", "ESR1", "FUBP1", "HDAC3", "ING1", "MDM4", "MYB", "MYCN", "NF1", "NFKB1", "PPARG", "PRDM1", "RB1", "RBL1", "RELA", "RFX1", "SIRT1", "SP1", "STAT3", "TBP", "TCF4", "YY1", "CAD", "CCND1", "CDK4", "CDKN1A", "FASLG", "ODC1", "TERT", "APAF1", "BBC3", "BCL2", "BRCA2", "DDB2", "DNMT1", "DUSP1", "EZH2", "FAS", "GADD45A", "IGF1R", "MDM2", "MGMT", "MMP2", "RRM2B", "THBS1", "TNFRSF10B", "TP53I3", "TP73", "UHRF1", "XPC")
   expect_identical(extended_genes, results)
 
