@@ -1,4 +1,4 @@
-tf  target  regulation_mode ref_PMID
+tf	target	regulation_mode	ref_PMID
 AATF	BAX	Repression	22909821
 AATF	CDKN1A	Unknown	17157788
 AATF	KLK3	Unknown	23146908
