@@ -97,7 +97,7 @@ ann_types <- c(
 
 ann_space <- fctBio::load_ann_space(ann_sources, ann_types)
 
-test_enrich <- fctBio::NestedEnrich$new(data, ann_space, ncpus = 1,
+test_enrich <- fctBio::NestedEnrich$new(data, ann_space,
   do_cluster_analysis = FALSE)
 
 test_that("plot without clustering", {
@@ -250,67 +250,48 @@ known_terms <- list(
   l6 = tab_base[c(25, 35, 45), "term"]  # LOW
 )
 
-b1g1up <- dplyr::filter(results,
-  .data$batch == "b1" &
-  .data$group == "g1" &
-  .data$type == "upregulated" &
-  .data$ann_name == "GO"
-)$enrich[[1]]
+b1g1up <- test_enrich$filter_and_get_results("b1", "g1", "upregulated", "GO"
+  )$enrich[[1]]
+
 b1g1up_signif <- b1g1up %>%
   dplyr::filter(
     .data$term %in% unlist(known_terms[c("l1", "l2")])
   )
 
-b1g2up <- dplyr::filter(results,
-  .data$batch == "b1" &
-  .data$group == "g2" &
-  .data$type == "upregulated" &
-  .data$ann_name == "GO"
-)$enrich[[1]]
+b1g2up <- test_enrich$filter_and_get_results("b1", "g2", "upregulated", "GO"
+  )$enrich[[1]]
+
 b1g2up_signif <- b1g2up %>%
   dplyr::filter(
     .data$term %in% unlist(known_terms[c("l1", "l3")])
   )
 
-b2g1up <- dplyr::filter(results,
-  .data$batch == "b2" &
-  .data$group == "g1" &
-  .data$type == "upregulated" &
-  .data$ann_name == "GO"
-)$enrich[[1]]
+b2g1up <- test_enrich$filter_and_get_results("b2", "g1", "upregulated", "GO"
+  )$enrich[[1]]
+
 b2g1up_signif <- b2g1up %>%
   dplyr::filter(
     .data$term %in% unlist(known_terms[c("l2")])
   )
 
-b2g2up <- dplyr::filter(results,
-  .data$batch == "b2" &
-  .data$group == "g2" &
-  .data$type == "upregulated" &
-  .data$ann_name == "GO"
-)$enrich[[1]]
+b2g2up <- test_enrich$filter_and_get_results("b2", "g2", "upregulated", "GO"
+  )$enrich[[1]]
+
 b2g2up_signif <- b2g2up %>%
   dplyr::filter(
     .data$term %in% unlist(known_terms[c("l3")])
   )
 
-b1g1down <- dplyr::filter(results,
-  .data$batch == "b1" &
-  .data$group == "g1" &
-  .data$type == "downregulated" &
-  .data$ann_name == "GO"
-)$enrich[[1]]
+b1g1down <- test_enrich$filter_and_get_results("b1", "g1", "downregulated", "GO"
+  )$enrich[[1]]
+
 b1g1down_signif <- b1g1down %>%
   dplyr::filter(
     .data$term %in% unlist(known_terms[c("l5")])
   )
 
-b1g1up_rc <- dplyr::filter(results,
-  .data$batch == "b1" &
-  .data$group == "g1" &
-  .data$type == "upregulated" &
-  .data$ann_name == "RC"
-)$enrich[[1]]
+b1g1up_rc <- test_enrich$filter_and_get_results("b1", "g1", "upregulated", "RC"
+  )$enrich[[1]]
 
 testthat::test_that("test enrich expectations", {
   testthat::expect_gt(
@@ -469,3 +450,38 @@ testthat::test_that("test incidence matrix", {
   )
 
 })
+
+cgene_count = test_enrich$count_gene_per_cluster()
+genes <- cgene_count$gene
+gene2Test <- paste0(genes, "test")
+names(gene2Test) <- genes
+cgene_count_verbose = test_enrich$count_gene_per_cluster(id2name <- gene2Test,
+  verbose = TRUE)
+
+
+expected_cols <- c("gene", "cluster", "intra_x_term", "extra_x_term",
+  "x_cluster", "x_batch", "x_group")
+expected_cols_verbose <- c("Gene", "Gene Name", "Cluster", "Intra", "Extra", "Clusters",
+  "Batches", "Groups")
+
+testthat::test_that("test cgenecount matrix", {
+
+  testthat::expect_identical(
+    names(cgene_count),
+    expected_cols
+  )
+  testthat::expect_identical(
+    names(cgene_count_verbose),
+    expected_cols_verbose
+  )
+
+  testthat::expect_identical(
+    sapply(names(cgene_count), function(n) class(cgene_count[[n]]),
+      USE.NAMES = FALSE),
+    c("character","integer","integer","integer","integer","integer","integer")
+  )
+
+  expect_true(all(grepl("test$", cgene_count_verbose[["Gene Name"]])))
+
+})
+
