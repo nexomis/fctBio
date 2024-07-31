@@ -60,8 +60,6 @@ a number of cluster of 8. Please use the methods to adapt the clustering.
   data_col = "data",
   data_univ_col = NULL,
   data_nested_id = "uniprot",
-  ncpus = 1,
-  cluster_type = "PSOCK",
   regex = "-.*",
   lim_pmin = 0.05,
   classic = FALSE,
@@ -93,10 +91,6 @@ a number of cluster of 8. Please use the methods to adapt the clustering.
 \item{\code{data_univ_col}}{same as \code{data_col} but for the "universe"}
 
 \item{\code{data_nested_id}}{see \code{nested_df}}
-
-\item{\code{ncpus}}{number of cpus}
-
-\item{\code{cluster_type}}{see parallel package}
 
 \item{\code{regex}}{regex to clean input data ids (for example to remove
 versions ".1")}
@@ -704,12 +698,31 @@ count gene per cluster
 
 \item{\code{new_name_label}}{name for the column of genes after translation}
 
-\item{\code{verbose}}{replace column names with meaningful ones.}
+\item{\code{verbose}}{replace column names with meaningful ones.
+\itemize{
+\item gene -> Gene
+\item cluster -< Cluster
+\item intra_x_term -> Intra
+\item extra_x_term -> Extra
+\item x_cluster -> Cluster
+\item x_batch -> Batch
+\item x_group -> Group
+}}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-count table
+count table wih the following names:
+\itemize{
+\item gene: \link{character} gene
+\item cluster: \link{integer} cluster (set of terms) identitified by its number
+\item intra_x_term: \link{integer} Number of occurence for the gene in the terms
+intra-cluster
+\item extra_x_term: \link{integer} Number of occurence for the gene in the terms globally
+\item x_cluster:  \link{integer} Number of occurence for the gene in clusters
+\item x_batch: Number of occurence for the gene in batches
+\item x_group: Number of occurence for the gene in groups
+}
 }
 }
 \if{html}{\out{<hr>}}

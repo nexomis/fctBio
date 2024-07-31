@@ -269,8 +269,6 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param data_col see `nested_df`
     #' @param data_univ_col same as `data_col` but for the "universe"
     #' @param data_nested_id see `nested_df`
-    #' @param ncpus number of cpus
-    #' @param cluster_type see parallel package
     #' @param regex regex to clean input data ids (for example to remove
     #' versions ".1")
     #' @param lim_pmin minimum pvalue acceptable. Below this gene set are not
@@ -287,14 +285,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     initialize = function(nested_df, ann_space, batch_col = NULL,
       group_col = NULL, batch_labels = NULL, group_labels = NULL,
       data_col = "data", data_univ_col = NULL, data_nested_id = "uniprot",
-      ncpus = 1, cluster_type = "PSOCK", regex = "-.*", lim_pmin = 0.05,
+      regex = "-.*", lim_pmin = 0.05,
       classic = FALSE, log_level = "WARN", do_cluster_analysis = TRUE,
       hard_pmin_filter = TRUE, ...) {
 
       logging::basicConfig(level = log_level)
       logging::loginfo("Initialize cluster")
-      ncpus <- as.integer(min(ncpus, parallel::detectCores()))
-      cl <- parallel::makeCluster(ncpus, type = cluster_type)
       logging::loginfo("Parse inputs")
       private$data_nested_id <- data_nested_id
       nested_df <- tibble::as_tibble(nested_df)
@@ -423,7 +419,16 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         private$raw_ann[, c("term", "genes", "parent_genes", "parents",
           "ann_name"), with = FALSE]
 
-      logging::loginfo("Define fx")
+      logging::loginfo("prepare combinations")
+      combinations <- expand.grid(
+        i = seq_len(nrow(nested_dt)),
+        ann_name = levels(ann_space$ann_name)
+      )
+      combinations_list <- split(combinations, seq_len(nrow(combinations)))
+      raw_ann <- private$raw_ann
+
+      logging::loginfo("Enrichment loop")
+
       fx <- function(i, ann_name_input) {
         nested_dt_row <- as.data.table(nested_dt[i, , drop = FALSE])
         nested_dt_row$ann_name <- ann_name_input
@@ -444,56 +449,17 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         nested_dt_row
       }
 
-      logging::loginfo("prepare combinations")
-      combinations <- expand.grid(
-        i = seq_len(nrow(nested_dt)),
-        ann_name = levels(ann_space$ann_name)
+      private$results <- rbindlist(
+        lapply(
+          combinations_list,
+          function(x) (fx(x[["i"]],x[["ann_name"]]))
+        ), fill = TRUE
       )
-      combinations_list <- split(combinations, seq_len(nrow(combinations)))
-
-      logging::loginfo("Enrichment loop")
-      if (ncpus == 1) {
-        raw_ann <- private$raw_ann
-        private$results <- rbindlist(
-          lapply(
-            combinations_list,
-            function(x) (fx(x[["i"]], x[["ann_name"]]))
-          ), fill = TRUE
-        )
-      } else {
-        logging::loginfo("Export data to cluster")
-        parallel::clusterExport(cl,
-          c(
-            "nested_dt",
-            "raw_ann",
-            "data_univ_col",
-            "lim_pmin",
-            "log_level",
-            "classic"
-          ),
-        list2env(list(
-          nested_dt = nested_dt,
-          raw_ann = private$raw_ann,
-          lim_pmin = lim_pmin,
-          log_level = log_level,
-          classic = classic
-        )))
-        logging::loginfo("Loop on cluster")
-        private$results <- rbindlist(
-          parallel::parLapply(cl,
-            combinations_list,
-            function(x) (fx(x[["i"]], x[["ann_name"]]))
-          )
-        )
-      }
-      logging::loginfo("Enrichment terminated. Stop cluster")
-
-      parallel::stopCluster(cl)
+      logging::loginfo("Enrichment terminated.")
 
       if (do_cluster_analysis) {
         logging::loginfo("Start clustering analysis")
-        self$filter_and_set_significant_results(
-          0.05, p_type = "qval_bonferroni")
+        self$filter_and_set_significant_results()
         logging::loginfo("Finished clustering analysis")
       } else {
         self$filter_and_set_significant_results(
@@ -1433,7 +1399,22 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param id2name dictionary to translate gene ids
     #' @param new_name_label name for the column of genes after translation
     #' @param verbose replace column names with meaningful ones.
-    #' @return count table
+    #' - gene -> Gene
+    #' - cluster -< Cluster
+    #' - intra_x_term -> Intra
+    #' - extra_x_term -> Extra
+    #' - x_cluster -> Cluster
+    #' - x_batch -> Batch
+    #' - x_group -> Group
+    #' @return count table wih the following names:
+    #' - gene: [character] gene 
+    #' - cluster: [integer] cluster (set of terms) identitified by its number
+    #' - intra_x_term: [integer] Number of occurence for the gene in the terms
+    #'   intra-cluster
+    #' - extra_x_term: [integer] Number of occurence for the gene in the terms globally
+    #' - x_cluster:  [integer] Number of occurence for the gene in clusters
+    #' - x_batch: Number of occurence for the gene in batches
+    #' - x_group: Number of occurence for the gene in groups
     count_gene_per_cluster = function(id2name = NULL,
       new_name_label = "Gene Name", verbose = FALSE) {
 
@@ -1495,20 +1476,33 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
       data.table::setorder(summary_dt,
         - extra_x_term, - x_cluster, - intra_x_term)
+      
+      if (! is.null(id2name)) {
+        # How to make it to the 3rd column position ?
+        summary_dt[, (new_name_label) := as.character(id2name[gene])]
+      }
+      data.table::setorder(summary_dt, 
+        - x_cluster, - extra_x_term, gene, - intra_x_term)
 
       if (verbose) {
         old_names <- c("gene", "cluster", "intra_x_term", "extra_x_term",
           "x_cluster", "x_batch", "x_group")
-        new_names <- c("ID", "Cluster", "# in enriched term intra",
-          "# in enriched term", "# in cluster", "# in batch", "# in group")
+        new_names <- c("Gene", "Cluster", "Intra",
+          "Extra", "Clusters", "Batches", "Groups")
+        if (! is.null(id2name)) {
+          old_names <- c(old_names, new_name_label)
+          new_names <- c(new_names, new_name_label)
+        }
         data.table::setnames(summary_dt, old_names, new_names)
       }
-
       if (! is.null(id2name)) {
-        summary_dt[, (new_name_label) := as.character(id2name[ID])]
+        current_cols <- names(summary_dt)
+        desired_order <-
+          c(current_cols[1], new_name_label, current_cols[2:(length(current_cols)-1)])
+        data.table::setcolorder(summary_dt, desired_order)
       }
 
-      return(dplyr::arrange(summary_dt, - .data[["# in cluster"]]))
+      return(summary_dt)
     },
 
     #' @description

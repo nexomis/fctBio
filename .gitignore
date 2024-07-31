@@ -5,6 +5,7 @@ fctBio.Rproj
 .Rproj.user
 **.swp
 **.Rproj.user
+issue.txt
 
 # ignore build files
 inst/doc
