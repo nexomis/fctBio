@@ -1,7 +1,7 @@
 Package: fctBio
 Type: Package
 Title: Objects and methods for functional biology analysis
-Version: 1.0.0
+Version: 1.0.1
 Author: Julien FOURET <jfouret@nexomis.io>
 biocViews:
 Imports: 
@@ -52,4 +52,4 @@ Collate:
     'query_genes.r'
 Depends: 
     R (>= 4.0)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2

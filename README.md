@@ -6,6 +6,10 @@ First clone the repository to `PATH` and then install on R.
 
 ```
 apptainer run docker://quay.io/nexomis/r-nexoverse:4.3.3-Bioc_3.18-06.2024 Rscript .ci/build_documentation.r
+docker run -u $UID:$GID -v $PWD:$PWD -w $PWD quay.io/nexomis/r-nexoverse:4.4.1-bioc_3.19-07.2024 Rscript .ci/test.r
+
+docker run -u $UID:$GID -v $PWD:$PWD -w $PWD quay.io/nexomis/r-nexoverse:4.4.1-bioc_3.19-07.2024 Rscript .ci/build_documentation.r
+
 ```
 
 ## 1.2 Build and install the library
