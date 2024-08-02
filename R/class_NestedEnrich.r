@@ -1493,16 +1493,13 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       summary_dt <- data.table::merge.data.table(summary_dt, dt_x_group, by = "gene")
 
       summary_dt[, gene := private$gene_ids[gene]]
-
-      data.table::setorder(summary_dt,
-        - extra_x_term, - x_cluster, - intra_x_term)
       
       if (! is.null(id2name)) {
         # How to make it to the 3rd column position ?
         summary_dt[, (new_name_label) := as.character(id2name[gene])]
       }
-      data.table::setorder(summary_dt, 
-        - x_cluster, - extra_x_term, gene, - intra_x_term)
+      data.table::setorder(summary_dt,
+        cluster, - intra_x_term, - extra_x_term, gene)
 
       if (verbose) {
         old_names <- c("gene", "cluster", "intra_x_term", "extra_x_term",
@@ -1573,25 +1570,29 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       }
       
       scl_table[, c("batch", "group", "type") := NULL]
+      
+      cl_sum <- scl_table[, .(min_q_val_cl = min(qval_bonferroni)), by = cluster]
+      cl2min <- cl_sum$min_q_val_cl
+      setattr(cl2min, "names", as.character(cl_sum$cluster))
+      scl_table[["min_q_val_cl"]] <- cl2min[as.character(scl_table[["cluster"]])]
+      setattr(scl_table[["min_q_val_cl"]], "names", NULL)
 
-      cl_sum <- scl_table[, .(min_q_val = min(qval_bonferroni)), by = cluster]
-
-      cl2min <- cl_sum$min_q_val
-      setattr(cl2min, "names", cl_sum$cluster)
-
-      scl_table[["min_q_val"]] <- cl2min[scl_table[["cluster"]]]
-      setattr(scl_table[["min_q_val"]], "names", NULL)
+      cl_sum <- scl_table[, .(min_q_val_cat = min(qval_bonferroni)), by = category]
+      cl2min <- cl_sum$min_q_val_cat
+      setattr(cl2min, "names", as.character(cl_sum$cluster))
+      scl_table[["min_q_val_cat"]] <- cl2min[as.character(scl_table[["cluster"]])]
+      setattr(scl_table[["min_q_val_cat"]], "names", NULL)
 
       wide_scl_table <- dcast(scl_table, ... ~ category,
         value.var = "qval_bonferroni")
 
-      wide_scl_table <- wide_scl_table[order(`min_q_val`)]
+      data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_cat)
 
       setattr(wide_scl_table$cluster, "names", NULL)
       if (verbose) {
         setnames(wide_scl_table, old = c("cluster", "term", "name", "ann_name",
-          "Ngenes", "min_q_val"),
-          new = c("Cluster", "Term", "Name", "Database", "# of Genes", "Min q-value"))
+          "Ngenes", "min_q_val_cl", "min_q_val_cat"),
+          new = c("Cluster", "Term", "Name", "Database", "# of Genes", "Cluster min q-value", "Term min q-value"))
       }
 
       return(wide_scl_table)
