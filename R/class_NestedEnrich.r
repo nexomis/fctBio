@@ -1577,11 +1577,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       scl_table[["min_q_val_cl"]] <- cl2min[as.character(scl_table[["cluster"]])]
       setattr(scl_table[["min_q_val_cl"]], "names", NULL)
 
-      cl_sum <- scl_table[, .(min_q_val_cat = min(qval_bonferroni)), by = category]
-      cl2min <- cl_sum$min_q_val_cat
-      setattr(cl2min, "names", as.character(cl_sum$cluster))
-      scl_table[["min_q_val_cat"]] <- cl2min[as.character(scl_table[["cluster"]])]
-      setattr(scl_table[["min_q_val_cat"]], "names", NULL)
+      cl_sum <- scl_table[, .(min_q_val_term = min(qval_bonferroni)), by = term]
+      cl2min <- cl_sum$min_q_val_term
+      setattr(cl2min, "names", as.character(cl_sum$term))
+      scl_table[["min_q_val_term"]] <- cl2min[as.character(scl_table[["term"]])]
+      setattr(scl_table[["min_q_val_term"]], "names", NULL)
 
       wide_scl_table <- dcast(scl_table, ... ~ category,
         value.var = "qval_bonferroni")
@@ -1591,7 +1591,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       setattr(wide_scl_table$cluster, "names", NULL)
       if (verbose) {
         setnames(wide_scl_table, old = c("cluster", "term", "name", "ann_name",
-          "Ngenes", "min_q_val_cl", "min_q_val_cat"),
+          "Ngenes", "min_q_val_cl", "min_q_val_term"),
           new = c("Cluster", "Term", "Name", "Database", "# of Genes", "Cluster min q-value", "Term min q-value"))
       }
 
