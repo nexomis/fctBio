@@ -240,7 +240,10 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 #' or enrichment results for specified types.
 #' @param in_ann_name Vector of annotation name codes; used to select or report
 #' only enrichment results for specified annotations.
-#' @param p_type Type of p-value to consider (e.g., raw p-value, adjusted p-value).
+#' @param p_type type of pvalue to use:
+#' - "pval" : raw p-value
+#' - "qval_bh" : q-value using Benjamini Hochberg
+#' - "qval_bonferroni": q-value using Bonferoni
 #' @param max_cluster Maximum number of clusters to display or analyze.
 #' @param max_term_per_cluster Maximum number of terms per cluster to display or analyze.
 #' @export
@@ -280,7 +283,6 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param lim_pmin Minimum p-value threshold; gene sets below this threshold are not retained
     #' unless `hard_pmin_filter` is set to FALSE.
     #' @param log_level Logging level as defined by the logging package.
-    #' @param do_cluster_analysis Boolean; if FALSE, skips the automatic clustering analysis.
     #' @param hard_pmin_filter Boolean; if TRUE, removes gene sets with p-values below `lim_pmin`.
     #' @param classic Boolean; if TRUE, performs analysis relative to the universe of genes.
     #' @param ... Additional arguments passed to the `enrich` function.
@@ -289,7 +291,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       group_col = NULL, type_col = NULL, batch_labels = NULL, 
       group_labels = NULL, data_col = "data", data_univ_col = NULL,
       data_nested_id = "uniprot", regex = "-.*", lim_pmin = 0.05,
-      classic = FALSE, log_level = "WARN", do_cluster_analysis = TRUE,
+      classic = FALSE, log_level = "WARN",
       hard_pmin_filter = TRUE, ...) {
 
       logging::basicConfig(level = log_level)
@@ -467,14 +469,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       )
       logging::loginfo("Enrichment terminated.")
 
-      if (do_cluster_analysis) {
-        logging::loginfo("Start clustering analysis")
-        self$filter_and_set_significant_results()
-        logging::loginfo("Finished clustering analysis")
-      } else {
-        self$filter_and_set_significant_results(
-          0.05, p_type = "qval_bonferroni", min_signif_term_for_clust = Inf)
-      }
+      self$filter_and_set_significant_results()
+
     },
 
     #' @description
@@ -719,10 +715,6 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #'
     #' This function requires the filter_and_set_significant_results method to
     #' be ran before
-    #' @param p_type type of pvalue to use:
-    #' - "pval" : raw p-value
-    #' - "qval_bh" : q-value using Benjamini Hochberg
-    #' - "qval_bonferroni": q-value using Bonferoni
     build_and_set_p_matrix = function(p_type = "pval") {
       if (is.null(private$significant_results)) {
         logging::logerror(paste(
@@ -1552,11 +1544,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #'   - Additional columns representing each combination of batch, group, and type, formatted
     #'     as 'batch|group|type', each containing the q-value for the term within that context.
     #'
-    build_cluster_summary_table = function(verbose = FALSE) {
+    build_cluster_summary_table = function(verbose = FALSE, 
+      p_type = "qval_bh") {
 
       select_res <- c(
         "cluster", "term", "name", "ann_name", "Ngenes", "batch", "group",
-        "type", "qval_bonferroni"
+        "type", p_type
       )
 
       scl_table <- self$prepare_results_for_plot()$pval[, ..select_res]
@@ -1568,23 +1561,25 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       } else {
         scl_table[, category := paste(batch, group, type, sep = "|")]
       }
+
+      scl_table[, tmp_p := scl_table[[p_type]]]
       
-      scl_table[, c("batch", "group", "type") := NULL]
-      
-      cl_sum <- scl_table[, .(min_q_val_cl = min(qval_bonferroni)), by = cluster]
+      cl_sum <- scl_table[, .(min_q_val_cl = min(tmp_p)), by = cluster]
       cl2min <- cl_sum$min_q_val_cl
       setattr(cl2min, "names", as.character(cl_sum$cluster))
       scl_table[["min_q_val_cl"]] <- cl2min[as.character(scl_table[["cluster"]])]
       setattr(scl_table[["min_q_val_cl"]], "names", NULL)
 
-      cl_sum <- scl_table[, .(min_q_val_term = min(qval_bonferroni)), by = term]
+      cl_sum <- scl_table[, .(min_q_val_term = min(tmp_p)), by = term]
       cl2min <- cl_sum$min_q_val_term
       setattr(cl2min, "names", as.character(cl_sum$term))
       scl_table[["min_q_val_term"]] <- cl2min[as.character(scl_table[["term"]])]
       setattr(scl_table[["min_q_val_term"]], "names", NULL)
 
+      scl_table[, c("batch", "group", "type", "tmp_p") := NULL]
+
       wide_scl_table <- dcast(scl_table, ... ~ category,
-        value.var = "qval_bonferroni")
+        value.var = p_type)
 
       data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_term)
 
@@ -1607,7 +1602,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' of all cluster
     #' @return None
     write_xlsx = function(output_folder = ".", id2name = NULL,
-      new_name_label = "Tested Gene Name", write_cluster_summary = TRUE) {
+      new_name_label = "Tested Gene Name", write_cluster_summary = TRUE,
+      p_type = "qval_bh") {
       new_names <- c(
         "Term ID",
         "Term name",
@@ -1694,7 +1690,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         }
       }
       if (write_cluster_summary) {
-        scl_table <- self$build_cluster_summary_table(verbose = TRUE)
+        scl_table <- self$build_cluster_summary_table(verbose = TRUE,
+          p_type = p_type)
         for (qname in names(scl_table)[6:ncol(scl_table)]) {
             class(scl_table[[qname]]) <- "scientific"
         }

@@ -97,8 +97,10 @@ ann_types <- c(
 
 ann_space <- fctBio::load_ann_space(ann_sources, ann_types)
 
-test_enrich <- fctBio::NestedEnrich$new(data, ann_space,
-  do_cluster_analysis = FALSE)
+test_enrich <- fctBio::NestedEnrich$new(data, ann_space)
+
+test_enrich$filter_and_set_significant_results(
+  0.05, p_type = "qval_bonferroni", min_signif_term_for_clust = Inf)
 
 test_that("plot without clustering", {
   vdiffr::expect_doppelganger("default",

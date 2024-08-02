@@ -1,7 +1,7 @@
 Package: fctBio
 Type: Package
 Title: Objects and methods for functional biology analysis
-Version: 1.0.5
+Version: 1.0.6
 Author: Julien FOURET <jfouret@nexomis.io>
 biocViews:
 Imports: 
