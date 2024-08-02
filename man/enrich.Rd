@@ -2,7 +2,7 @@
 % Please edit documentation in R/class_NestedEnrich.r
 \name{enrich}
 \alias{enrich}
-\title{Db enrichment}
+\title{Simple Gene Set Enrichment}
 \usage{
 enrich(
   gene_input,
@@ -15,42 +15,34 @@ enrich(
 )
 }
 \arguments{
-\item{gene_input}{input gene list as INTEGER vector}
+\item{gene_input}{Input gene list converted as an INTEGER vector.}
 
-\item{ann}{tibble / annotation table.
-term: id of the term using integer;
-genes: nested list with interger representing genes.
-type: The type this term fits in. To allow the subsetting of big functional
-database like gene ontologye where there is 3 type: biological_process,
-molecular_function and cellular_component
-parents: comma separated list of parent terms (with id).}
+\item{ann}{Modified annotation table as returned from \link{load_ann_space}
+but with}
 
-\item{gene_universe}{universe named gene list as INTEGER vector.}
+\item{gene_universe}{Optional, Universe gene list as an INTEGER vector.}
 
-\item{lim_pmin}{minimum value for pmin (lowest possible p-value).
-This limit is used for filtering before pval correction}
+\item{lim_pmin}{Minimum value for pmin (lowest possible p-value).
+This limit is used for filtering before p-value correction.}
 
-\item{classic}{Do analysis relative to the universe (vs parent-child)}
+\item{classic}{Boolean, if TRUE performs analysis relative to the universe
+(vs. parent-child method).}
 
-\item{log_level}{Level of logging (see logging package). Default = WARN}
+\item{log_level}{Logging level (see logging package). Default is WARN.}
 
-\item{gene2int}{A dictionary to transform gene to integer.}
+\item{regex}{Regex pattern to remove from gene name from input lists
+(useful for deleting accession version info which should not be present
+on database files).}
 
-\item{regex}{regex pattern to remove from gene name from input lists (useful
-for deleting accession version info which should not be present on database
-file)}
-
-\item{type_keep}{character vector of term type to keep (keep all by default);
-e.g Biological_process for gene ontology}
+\item{type_keep}{Character vector of term types to retain (all types
+are kept by default); e.g., Biological_process for gene ontology.}
 }
 \description{
-R program designed to perform an enrichment analysis with topology-based
-annotation.
-Over-representation analysis is performed according to the
-parent-child-intersection method.
-Multi-testing is done with BH and Bonferoni methods on the subset of term
-with a minimal p-value below 1e-4 by default.
-P-values are based on combination analysis as described in the parent-child
-paper using GNU multiple precision arithmetic
-libraries and their R implementation.
+This function performs enrichment analysis using topology-based annotations.
+It applies the parent-child method for over-representation analysis.
+Multi-testing correction is performed using BH and Bonferroni
+methods for terms with a minimal p-value below 1e-4 by default. P-values
+are calculated using the hypergeometric test. This function is intended
+for internal use due to its reliance on integer IDs for genes and terms;
+later a new implementation may allow direct use of this function.
 }

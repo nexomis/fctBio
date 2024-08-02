@@ -2,7 +2,7 @@
 % Please edit documentation in R/query_genes.r
 \name{query_genes_choices}
 \alias{query_genes_choices}
-\title{Get possible choices for a query}
+\title{Retrieve Possible Choices for Gene Querying}
 \usage{
 query_genes_choices(
   nested_df,
@@ -13,45 +13,53 @@ query_genes_choices(
 )
 }
 \arguments{
-\item{nested_df}{nested tibble with
+\item{nested_df}{A nested tibble as returned by the \code{get_results} method of the
+\code{NestedEnrich} class, with \code{verbose = TRUE} to ensure descriptive column
+names which facilitate easier querying.}
+
+\item{filter_name}{A character string specifying the attribute to filter on.
+Supported filters include:
 \itemize{
-\item gene sets given in a tibble in \code{data_col} variable and in \code{data_nested_id}
-nested variable
-\item eventually enrichment data in the enrich column
-from the filter_and_get_nested_results method of NestedEnrich object
+\item \code{batch}: Select genes present in specified batch(es).
+\item \code{batch_label}: Select genes based on batch label(s).
+\item \code{group}: Select genes present in specified group(s).
+\item \code{group_label}: Select genes based on group label(s).
+\item \code{type}: Select genes present in specified type(s).
+\item \code{term_id}: Select genes associated with a specific term ID(s).
+\item \code{term_name}: Select genes associated with a specific term name(s).
+\item \code{cluster}: Select genes associated with a specific cluster(s).
+\item \code{intra_occurences}: Select genes based on their minimal occurrences within the same term.
+\item \code{extra_occurences}: Select genes based on their minimal occurrences across all terms.
+\item \code{cluster_occurences}: Select genes based on their minimal occurrences within specified clusters.
 }}
 
-\item{filter_name}{filter to apply
-\itemize{
-\item batch : select genes if present in batch(s)
-\item batch_label : select genes if present in batch label(s)
-\item group : select genes if present in group(s)
-\item group_label : select genes if present in group label(s)
-\item term_id : select genes if part of a term based on the \code{enrich_gene_col}.
-\item term_name : select genes if part of a term based on the \code{enrich_gene_col}.
-\item cluster : select genes if part of a cluster (significant term).
-\item intra_occurences : select genes based on their minimal occurences in terms
-intra cluster
-\item extra_occurences : select genes based on their minimal occurences in terms
-\item cluster_occurences : select genes based on their minimal occurences in
-cluster
-}}
+\item{genes_per_clusters}{Optional but required for xxx_occurrences filters
+a data frame from the \code{count_gene_per_cluster}#' method in the \code{NestedEnrich}
+class, which includes gene occurrence data across clusters.}
 
-\item{genes_per_clusters}{from the count_gene_per_cluster method of NestedEnrich object with columns:
-\itemize{
-\item "ID"
-\item "Cluster"
-\item "# in enriched term intra"
-\item "# in batch"
-\item "# in group"
-\item "# in enriched term"
-\item "# in cluster"
-}}
+\item{batch_labels}{Optional; a vector of batch labels if \code{batch_label} filter is used.
+This helps map user-friendly labels to batch identifiers in the dataset.}
 
-\item{batch_labels}{batch labels}
-
-\item{group_labels}{group labels}
+\item{group_labels}{Optional; a vector of group labels if \code{group_label} filter is used.
+This helps map user-friendly labels to group identifiers in the dataset.}
+}
+\value{
+A vector of unique values corresponding to the specified \code{filter_name},
+which can be used as inputs for filtering in the \code{query_genes} function.
 }
 \description{
-get choices to query genes (see query_genes function)
+This function provides potential filtering options for querying genes based on
+the specified filter criteria. It is designed to assist users in making selections
+when using the \code{query_genes} function by listing available options within the dataset.
+
+\code{query_genes_choices} extracts unique values from the specified filter attribute
+within the provided dataset. These values can then be used to define filters
+in calls to the \code{query_genes} function, ensuring that users are selecting from
+valid and existing data categories.
+}
+\examples{
+# Assuming `nested_df` is a dataset obtained from NestedEnrich with verbose = TRUE
+batch_options <- query_genes_choices(nested_df, "batch")
+term_options <- query_genes_choices(nested_df, "term_id")
+group_options <- query_genes_choices(nested_df, "group")
 }

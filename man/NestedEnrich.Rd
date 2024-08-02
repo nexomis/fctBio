@@ -2,10 +2,14 @@
 % Please edit documentation in R/class_NestedEnrich.r
 \name{NestedEnrich}
 \alias{NestedEnrich}
-\title{Class representing a nested enrichment analysis}
+\title{Nested Enrichment Analysis Class}
 \description{
-An R6 class to represent nested enrichment. Enrichments are computed based on
-a nested dataframe; each row is computed for each annotation source.
+The \code{NestedEnrich} class automates the process of performing enrichment analysis
+on nested data frames where each row represents a distinct set of conditions
+under which gene lists are analyzed. This class is particularly useful for
+complex experimental designs where gene data is segmented into multiple batches,
+groups, or types, and where each segment might require separate enrichment analysis
+against different annotation backgrounds.
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -45,16 +49,19 @@ a nested dataframe; each row is computed for each annotation source.
 \if{html}{\out{<a id="method-NestedEnrich-new"></a>}}
 \if{latex}{\out{\hypertarget{method-NestedEnrich-new}{}}}
 \subsection{Method \code{new()}}{
-Initialize \code{PairwiseDESeq2} object.
+Initialize \code{NestedEnrich} object.
 
-At initialization clustering is performed with default values and with
-a number of cluster of 8. Please use the methods to adapt the clustering.
+The constructor method for \code{NestedEnrich} sets up the enrichment analysis
+environment by loading and preparing data. It handles the initialization
+of data structures required for nested enrichment analysis based on
+specified parameters.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$new(
   nested_df,
   ann_space,
   batch_col = NULL,
   group_col = NULL,
+  type_col = NULL,
   batch_labels = NULL,
   group_labels = NULL,
   data_col = "data",
@@ -73,48 +80,57 @@ a number of cluster of 8. Please use the methods to adapt the clustering.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{nested_df}}{nested tibble with gene set given in a tibble in
-\code{data_col} variable and in \code{data_nested_id} nested variable}
+\item{\code{nested_df}}{A nested tibble containing gene sets organized by batch,
+group, and type. Each row should correspond to a unique analysis context,
+containing a nested dataframe of gene identifiers.
+\itemize{
+\item \code{batch}: First level of grouping, specifies the batch context of the gene list.
+\item \code{group}: Second level of grouping, specifies the group context.
+\item \code{type}: Third level of grouping, specifies the type context.
+\item \code{data}: Column name containing the nested dataframe with gene identifiers;
+must match the \code{data_col} argument.
+\item \code{data_univ}: Optional; column name for the nested dataframe with the
+"universe" of genes against which enrichment is assessed;
+}}
 
-\item{\code{ann_space}}{annotation space obtained with load_ann_space}
+\item{\code{ann_space}}{Annotation space data loaded from \code{load_ann_space}, defining
+the annotation context for enrichment analysis.}
 
-\item{\code{batch_col}}{batch column if not named batch}
+\item{\code{batch_col}}{Optional; specifies the column name for batch if different from 'batch'.}
 
-\item{\code{group_col}}{group column if not named group}
+\item{\code{group_col}}{Optional; specifies the column name for group if different from 'group'.}
 
-\item{\code{batch_labels}}{batch labels}
+\item{\code{type_col}}{Optional; specifies the column name for type.}
 
-\item{\code{group_labels}}{group labels}
+\item{\code{batch_labels}}{Optional; specifies labels for batches if renaming is required.}
 
-\item{\code{data_col}}{see \code{nested_df}}
+\item{\code{group_labels}}{Optional; specifies labels for groups if renaming is required.}
 
-\item{\code{data_univ_col}}{same as \code{data_col} but for the "universe"}
+\item{\code{data_col}}{Name of the column in \code{nested_df} containing gene data.}
 
-\item{\code{data_nested_id}}{see \code{nested_df}}
+\item{\code{data_univ_col}}{Optional; name of the column containing the universe of genes.}
 
-\item{\code{regex}}{regex to clean input data ids (for example to remove
-versions ".1")}
+\item{\code{data_nested_id}}{Column identifier in the nested data frames for gene identifiers.}
 
-\item{\code{lim_pmin}}{minimum pvalue acceptable. Below this gene set are not
-kept if hard_pmin_filter is True, in any case gene set below this
-threshold are used in multiple testing correction}
+\item{\code{regex}}{Regular expression to clean gene identifiers (e.g., to remove version numbers).}
 
-\item{\code{classic}}{Do analysis relative to the universe (vs parent-child)}
+\item{\code{lim_pmin}}{Minimum p-value threshold; gene sets below this threshold are not retained
+unless \code{hard_pmin_filter} is set to FALSE.}
 
-\item{\code{log_level}}{from logging package}
+\item{\code{classic}}{Boolean; if TRUE, performs analysis relative to the universe of genes.}
 
-\item{\code{do_cluster_analysis}}{if false will skip auto_clustering}
+\item{\code{log_level}}{Logging level as defined by the logging package.}
 
-\item{\code{hard_pmin_filter}}{if True, then gene set with a minimum p-value
-attainable below this threshold will be removed.}
+\item{\code{do_cluster_analysis}}{Boolean; if FALSE, skips the automatic clustering analysis.}
 
-\item{\code{...}}{arguments passed to \code{enrich} function
-If some ann codes are absent, all will be kept for absent database.}
+\item{\code{hard_pmin_filter}}{Boolean; if TRUE, removes gene sets with p-values below \code{lim_pmin}.}
+
+\item{\code{...}}{Additional arguments passed to the \code{enrich} function.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new \code{NestedEnrich} object.
+A new \code{NestedEnrich} object initialized with the provided data and settings.
 }
 }
 \if{html}{\out{<hr>}}
@@ -163,7 +179,7 @@ Return results
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{verbose}}{replace}
+\item{\code{verbose}}{Replace integer with IDs and add names for terms}
 }
 \if{html}{\out{</div>}}
 }
@@ -177,23 +193,31 @@ Nested data frame with results
 \subsection{Method \code{filter_and_get_results()}}{
 Return result table after filtering
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$filter_and_get_results(in_batch, in_group, in_type, in_ann_name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$filter_and_get_results(
+  in_batch,
+  in_group,
+  in_type,
+  in_ann_name,
+  verbose = FALSE
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{in_batch}}{vector of batch codes ; select or report only gene lists or
-enrichment results for those batches}
+\item{\code{in_batch}}{Vector of batch codes; used to select or report only gene lists
+or enrichment results for specified batches.}
 
-\item{\code{in_group}}{vector of group codes ; select or report only gene lists or
-enrichment results for those groups}
+\item{\code{in_group}}{Vector of group codes; used to select or report only gene lists
+or enrichment results for specified groups.}
 
-\item{\code{in_type}}{vector of type codes ; select or report only gene lists or
-enrichment results for those types}
+\item{\code{in_type}}{Vector of type codes; used to select or report only gene lists
+or enrichment results for specified types.}
 
-\item{\code{in_ann_name}}{vector of annotation name codes ; select or report only
-enrichment results for those batch}
+\item{\code{in_ann_name}}{Vector of annotation name codes; used to select or report
+only enrichment results for specified annotations.}
+
+\item{\code{verbose}}{Replace integer with IDs and add names for terms}
 }
 \if{html}{\out{</div>}}
 }
@@ -207,9 +231,16 @@ Nested data frame with results
 \subsection{Method \code{unnest_and_get_results()}}{
 Return results unnested
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$unnest_and_get_results()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$unnest_and_get_results(verbose = FALSE)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{verbose}}{Replace integer with IDs and add names for terms}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
 Unnested data frame with results
 }
@@ -629,7 +660,7 @@ plot_enrich with pval
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{p_type}}{p-value type code to use e.g p_val}
+\item{\code{p_type}}{Type of p-value to consider (e.g., raw p-value, adjusted p-value).}
 
 \item{\code{...}}{arguments passed to \code{prepare_results_for_plot}}
 }
@@ -722,21 +753,54 @@ intra-cluster
 \item x_cluster:  \link{integer} Number of occurence for the gene in clusters
 \item x_batch: Number of occurence for the gene in batches
 \item x_group: Number of occurence for the gene in groups
+Build Cluster Summary Table
 }
+
+Constructs a summary table of the enrichment clusters.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NestedEnrich-build_cluster_summary_table"></a>}}
 \if{latex}{\out{\hypertarget{method-NestedEnrich-build_cluster_summary_table}{}}}
 \subsection{Method \code{build_cluster_summary_table()}}{
-Build cluster summary table. A cluster summary with all information about
-functional terms within.
+This method processes the results from previous enrichment analyses to compile
+a detailed summary for each cluster. It focuses on aggregating minimum q-values
+(adjusted p-values) for each cluster to assess the overall significance, alongside
+other relevant term details.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$build_cluster_summary_table()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$build_cluster_summary_table(verbose = FALSE)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{verbose}}{Boolean, if TRUE, column names in the returned table are more descriptive.
+The renaming adjusts column headers to be more human-readable and suitable for reports
+or presentations. Specific changes include:
+\itemize{
+\item "cluster" becomes "Cluster"
+\item "term" becomes "Term"
+\item "name" becomes "Name"
+\item "ann_name" becomes "Database"
+\item "Ngenes" becomes "# of Genes"
+\item "min_qval" becomes "Min q-value"
+}}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-a tibble table
+A tibble table containing a summary of the clusters with the following columns:
+\itemize{
+\item \code{cluster}: Cluster identifier (numeric or character based on input data).
+\item \code{term}: Unique identifier for each term within a cluster.
+\item \code{name}: Descriptive name of the term.
+\item \code{ann_name}: Source database from which the term was derived.
+\item \code{Ngenes}: Count of genes associated with each term.
+\item \code{min_qval}: Minimum q-value observed within each cluster, reflecting the lowest
+adjusted p-value computed for terms within the cluster.
+\item Additional columns representing each combination of batch, group, and type, formatted
+as 'batch|group|type', each containing the q-value for the term within that context.
+}
 }
 }
 \if{html}{\out{<hr>}}

@@ -5,12 +5,14 @@
 \title{Extend a list of genes by adding linked transcription factors (TFs) and/or target genes.}
 \usage{
 extend_network_trrust(
-  trrust_db,
+  trrust_db = system.file("extdata/human_network_annotations/trrust/data.tab", package =
+    "fctBio"),
   input_genes,
   add_tf = TRUE,
   add_target = TRUE,
   keep_input_without_hit = TRUE,
-  ignore_single_pmid = FALSE
+  ignore_single_pmid = FALSE,
+  detailled_output = FALSE
 )
 }
 \arguments{
@@ -25,6 +27,8 @@ extend_network_trrust(
 \item{keep_input_without_hit}{Logical, whether to keep all input genes (including 'tf', 'target' and unannotated gene).}
 
 \item{ignore_single_pmid}{Logical, whether to ignore relations supported by only one PMID reference.}
+
+\item{detailled_output}{\link{not implemented} To return in addition of vector of gene names, a dataframe with relation of each genes pairs.}
 }
 \value{
 A character vector of extended genes.

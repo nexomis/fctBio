@@ -190,7 +190,7 @@ testthat::test_that("test enrich structure", {
     class(results_raw[["universe"]][[1]])
   )
   testthat::expect_identical(
-    c("term", "genes", "parents", "GI", "NGI", "Ngenes", "parent_NGI",
+    c("term", "name", "type", "genes", "parents", "GI", "NGI", "Ngenes", "parent_NGI",
       "parent_Ngenes", "pmin", "pval", "qval_bonferroni", "qval_bh"),
     names(results[["enrich"]][[1]])
   )
@@ -200,7 +200,7 @@ testthat::test_that("test enrich structure", {
     names(results_raw[["enrich"]][[1]])
   )
   testthat::expect_identical(
-    c("character", "list", "list", "list", "integer", "integer", "integer",
+    c("character", "character", "character", "list", "list", "list", "integer", "integer", "integer",
       "integer", "numeric", "numeric", "numeric", "numeric"),
     sapply(
       names(results[["enrich"]][[1]]),
@@ -485,3 +485,66 @@ testthat::test_that("test cgenecount matrix", {
 
 })
 
+sumt <- test_enrich$build_cluster_summary_table()
+sumt_verbose <- test_enrich$build_cluster_summary_table(verbose = TRUE)
+
+temp_dir <- tempdir()
+
+test_enrich$write_xlsx(temp_dir)
+file_path <- file.path(temp_dir, "cluster_summary_fctBio.xlsx")
+test_that("XLSX file is created", {
+  expect_true(file.exists(file_path))
+})
+
+
+# all values below should be character vector of size > 0
+ch_batch <- fctBio::query_genes_choices(results,"batch",cgene_count)
+ch_batch_label <- fctBio::query_genes_choices(results,"batch_label",cgene_count, batch_labels = c(b2 = "batch 2", b1 = "batch 1"))
+ch_group <- fctBio::query_genes_choices(results,"group",cgene_count)
+ch_group_label <- fctBio::query_genes_choices(results,"group_label",cgene_count, group_labels = c(g2 = "group 2", g1 = "group 1"))
+ch_term_id <- fctBio::query_genes_choices(results,"term_id",cgene_count)
+ch_term_name <- fctBio::query_genes_choices(results,"term_name",cgene_count)
+ch_cluster <- fctBio::query_genes_choices(results,"cluster",cgene_count)
+
+# all values below should be integer vector of size > 0
+ch_intra_occurences <- fctBio::query_genes_choices(results,"intra_occurences",cgene_count)
+ch_extra_occurences <- fctBio::query_genes_choices(results,"extra_occurences",cgene_count)
+ch_cluster_occurences <- fctBio::query_genes_choices(results,"cluster_occurences",cgene_count)
+
+# all values below should be character vector of size > 0
+q_batch <- fctBio::query_genes(results,"batch", "b1",cgene_count)
+q_batch_label <- fctBio::query_genes(results,"batch_label", "batch 1",cgene_count, batch_labels = c(b2 = "batch 2", b1 = "batch 1"))
+q_group <- fctBio::query_genes(results,"group", "g1",cgene_count)
+q_group_label <- fctBio::query_genes(results,"group_label", "group 1",cgene_count, group_labels = c(g2 = "group 2", g1 = "group 1"))
+q_term_id <- fctBio::query_genes(results,"term_id", "GO:0140374", cgene_count)
+q_cluster <- fctBio::query_genes(results,"cluster", "1", cgene_count)
+q_intra_occurences <- fctBio::query_genes(results,"intra_occurences", 1, cgene_count)
+q_extra_occurences <- fctBio::query_genes(results,"extra_occurences", 1, cgene_count)
+q_cluster_occurences <- fctBio::query_genes(results,"cluster_occurences", 1, cgene_count)
+
+test_that("Check value type and size", {
+  # Check for character vectors of size > 0
+  expect_true(is.factor(ch_batch) && length(ch_batch) > 0)
+  expect_true(is.character(ch_batch_label) && length(ch_batch_label) > 0)
+  expect_true(is.factor(ch_group) && length(ch_group) > 0)
+  expect_true(is.character(ch_group_label) && length(ch_group_label) > 0)
+  expect_true(is.character(ch_term_id) && length(ch_term_id) > 0)
+  expect_true(is.character(ch_term_name) && length(ch_term_name) > 0)
+  expect_true(is.integer(ch_cluster) && length(ch_cluster) > 0)
+  
+  # Check for integer vectors of size > 0
+  expect_true(is.integer(ch_intra_occurences) && length(ch_intra_occurences) > 0)
+  expect_true(is.integer(ch_extra_occurences) && length(ch_extra_occurences) > 0)
+  expect_true(is.integer(ch_cluster_occurences) && length(ch_cluster_occurences) > 0)
+
+  # Check for character vectors with specific values and size > 0
+  expect_true(is.character(q_batch) && length(q_batch) > 0)
+  expect_true(is.character(q_batch_label) && length(q_batch_label) > 0)
+  expect_true(is.character(q_group) && length(q_group) > 0)
+  expect_true(is.character(q_group_label) && length(q_group_label) > 0)
+  expect_true(is.character(q_term_id) && length(q_term_id) > 0)
+  expect_true(is.character(q_cluster) && length(q_cluster) > 0)
+  expect_true(is.character(q_intra_occurences) && length(q_intra_occurences) > 0)
+  expect_true(is.character(q_extra_occurences) && length(q_extra_occurences) > 0)
+  expect_true(is.character(q_cluster_occurences) && length(q_cluster_occurences) > 0)
+})

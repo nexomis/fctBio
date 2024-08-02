@@ -2,37 +2,30 @@
 
 NULL
 
-#' Db enrichment
+#' Simple Gene Set Enrichment
 #'
-#' R program designed to perform an enrichment analysis with topology-based
-#' annotation.
-#' Over-representation analysis is performed according to the
-#' parent-child-intersection method.
-#' Multi-testing is done with BH and Bonferoni methods on the subset of term
-#' with a minimal p-value below 1e-4 by default.
-#' P-values are based on combination analysis as described in the parent-child
-#' paper using GNU multiple precision arithmetic
-#' libraries and their R implementation.
+#' This function performs enrichment analysis using topology-based annotations.
+#' It applies the parent-child method for over-representation analysis.
+#' Multi-testing correction is performed using BH and Bonferroni
+#' methods for terms with a minimal p-value below 1e-4 by default. P-values
+#' are calculated using the hypergeometric test. This function is intended
+#' for internal use due to its reliance on integer IDs for genes and terms; 
+#' later a new implementation may allow direct use of this function.
 #'
-#' @param gene_input input gene list as INTEGER vector
-#' @param gene_universe universe named gene list as INTEGER vector.
-#' @param gene2int A dictionary to transform gene to integer.
-#' @param ann tibble / annotation table.
-#' term: id of the term using integer;
-#' genes: nested list with interger representing genes.
-#' type: The type this term fits in. To allow the subsetting of big functional
-#' database like gene ontologye where there is 3 type: biological_process,
-#' molecular_function and cellular_component
-#' parents: comma separated list of parent terms (with id).
-#' @param lim_pmin minimum value for pmin (lowest possible p-value).
-#' This limit is used for filtering before pval correction
-#' @param regex regex pattern to remove from gene name from input lists (useful
-#' for deleting accession version info which should not be present on database
-#' file)
-#' @param type_keep character vector of term type to keep (keep all by default);
-#' e.g Biological_process for gene ontology
-#' @param classic Do analysis relative to the universe (vs parent-child)
-#' @param log_level Level of logging (see logging package). Default = WARN
+#' @param gene_input Input gene list converted as an INTEGER vector.
+#' @param gene_universe Optional, Universe gene list as an INTEGER vector.
+#' @param ann Modified annotation table as returned from \link{load_ann_space}
+#' but with 
+#' @param lim_pmin Minimum value for pmin (lowest possible p-value).
+#'   This limit is used for filtering before p-value correction.
+#' @param regex Regex pattern to remove from gene name from input lists
+#'   (useful for deleting accession version info which should not be present
+#'   on database files).
+#' @param type_keep Character vector of term types to retain (all types
+#'   are kept by default); e.g., Biological_process for gene ontology.
+#' @param classic Boolean, if TRUE performs analysis relative to the universe
+#'   (vs. parent-child method).
+#' @param log_level Logging level (see logging package). Default is WARN.
 #' @export
 enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
   classic = FALSE, log_level = "WARN", hard_pmin_filter = TRUE) {
@@ -227,65 +220,75 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
   ))
   }
 
-
 }
 
-
-#' Class representing a nested enrichment analysis
+#' Nested Enrichment Analysis Class
 #'
 #' @description
+#' The `NestedEnrich` class automates the process of performing enrichment analysis
+#' on nested data frames where each row represents a distinct set of conditions
+#' under which gene lists are analyzed. This class is particularly useful for
+#' complex experimental designs where gene data is segmented into multiple batches,
+#' groups, or types, and where each segment might require separate enrichment analysis
+#' against different annotation backgrounds.
 #'
-#' An R6 class to represent nested enrichment. Enrichments are computed based on
-#' a nested dataframe; each row is computed for each annotation source.
-#'
-#' @param in_batch vector of batch codes ; select or report only gene lists or
-#' enrichment results for those batches
-#' @param in_group vector of group codes ; select or report only gene lists or
-#' enrichment results for those groups
-#' @param in_type vector of type codes ; select or report only gene lists or
-#' enrichment results for those types
-#' @param in_ann_name vector of annotation name codes ; select or report only
-#' enrichment results for those batch
-#' @param p_type p-value type code to use e.g p_val
-#' @param max_cluster max number of cluster to show
-#' @param max_term_per_cluster max number of term per cluster to show
+#' @param in_batch Vector of batch codes; used to select or report only gene lists
+#' or enrichment results for specified batches.
+#' @param in_group Vector of group codes; used to select or report only gene lists
+#' or enrichment results for specified groups.
+#' @param in_type Vector of type codes; used to select or report only gene lists
+#' or enrichment results for specified types.
+#' @param in_ann_name Vector of annotation name codes; used to select or report
+#' only enrichment results for specified annotations.
+#' @param p_type Type of p-value to consider (e.g., raw p-value, adjusted p-value).
+#' @param max_cluster Maximum number of clusters to display or analyze.
+#' @param max_term_per_cluster Maximum number of terms per cluster to display or analyze.
 #' @export
 
 NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
   public <- list(
-    #' @description
-    #' Initialize `PairwiseDESeq2` object.
-    #'
-    #' At initialization clustering is performed with default values and with
-    #' a number of cluster of 8. Please use the methods to adapt the clustering.
-    #'
-    #' @param nested_df nested tibble with gene set given in a tibble in
-    #' `data_col` variable and in `data_nested_id` nested variable
-    #' @param ann_space annotation space obtained with load_ann_space
-    #' @param batch_col batch column if not named batch
-    #' @param group_col group column if not named group
-    #' @param batch_labels batch labels
-    #' @param group_labels group labels
-    #' @param data_col see `nested_df`
-    #' @param data_univ_col same as `data_col` but for the "universe"
-    #' @param data_nested_id see `nested_df`
-    #' @param regex regex to clean input data ids (for example to remove
-    #' versions ".1")
-    #' @param lim_pmin minimum pvalue acceptable. Below this gene set are not
-    #' kept if hard_pmin_filter is True, in any case gene set below this
-    #' threshold are used in multiple testing correction
-    #' @param log_level from logging package
-    #' @param do_cluster_analysis if false will skip auto_clustering
-    #' @param hard_pmin_filter if True, then gene set with a minimum p-value
-    #' attainable below this threshold will be removed.
-    #' @param classic Do analysis relative to the universe (vs parent-child)
-    #' @param ... arguments passed to `enrich` function
-    #' If some ann codes are absent, all will be kept for absent database.
-    #' @return A new `NestedEnrich` object.
+    #' @description 
+    #' Initialize `NestedEnrich` object.
+    #' 
+    #' The constructor method for `NestedEnrich` sets up the enrichment analysis
+    #' environment by loading and preparing data. It handles the initialization
+    #' of data structures required for nested enrichment analysis based on
+    #' specified parameters.
+    #' 
+    #' @param nested_df A nested tibble containing gene sets organized by batch,
+    #' group, and type. Each row should correspond to a unique analysis context,
+    #' containing a nested dataframe of gene identifiers.
+    #'   - `batch`: First level of grouping, specifies the batch context of the gene list.
+    #'   - `group`: Second level of grouping, specifies the group context.
+    #'   - `type`: Third level of grouping, specifies the type context.
+    #'   - `data`: Column name containing the nested dataframe with gene identifiers;
+    #'     must match the `data_col` argument.
+    #'   - `data_univ`: Optional; column name for the nested dataframe with the 
+    #'     "universe" of genes against which enrichment is assessed; 
+    #      must match the `data_univ_col` argument.
+    #' @param ann_space Annotation space data loaded from `load_ann_space`, defining
+    #' the annotation context for enrichment analysis.
+    #' @param batch_col Optional; specifies the column name for batch if different from 'batch'.
+    #' @param group_col Optional; specifies the column name for group if different from 'group'.
+    #' @param type_col Optional; specifies the column name for type.
+    #' @param batch_labels Optional; specifies labels for batches if renaming is required.
+    #' @param group_labels Optional; specifies labels for groups if renaming is required.
+    #' @param data_col Name of the column in `nested_df` containing gene data.
+    #' @param data_univ_col Optional; name of the column containing the universe of genes.
+    #' @param data_nested_id Column identifier in the nested data frames for gene identifiers.
+    #' @param regex Regular expression to clean gene identifiers (e.g., to remove version numbers).
+    #' @param lim_pmin Minimum p-value threshold; gene sets below this threshold are not retained
+    #' unless `hard_pmin_filter` is set to FALSE.
+    #' @param log_level Logging level as defined by the logging package.
+    #' @param do_cluster_analysis Boolean; if FALSE, skips the automatic clustering analysis.
+    #' @param hard_pmin_filter Boolean; if TRUE, removes gene sets with p-values below `lim_pmin`.
+    #' @param classic Boolean; if TRUE, performs analysis relative to the universe of genes.
+    #' @param ... Additional arguments passed to the `enrich` function.
+    #' @return A new `NestedEnrich` object initialized with the provided data and settings.
     initialize = function(nested_df, ann_space, batch_col = NULL,
-      group_col = NULL, batch_labels = NULL, group_labels = NULL,
-      data_col = "data", data_univ_col = NULL, data_nested_id = "uniprot",
-      regex = "-.*", lim_pmin = 0.05,
+      group_col = NULL, type_col = NULL, batch_labels = NULL, 
+      group_labels = NULL, data_col = "data", data_univ_col = NULL,
+      data_nested_id = "uniprot", regex = "-.*", lim_pmin = 0.05,
       classic = FALSE, log_level = "WARN", do_cluster_analysis = TRUE,
       hard_pmin_filter = TRUE, ...) {
 
@@ -306,6 +309,13 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           nested_df,
           function(x) ("group"),
           tidyselect::all_of(group_col)
+        )
+      }
+      if (! is.null(type_col)) {
+        nested_df <- dplyr::rename_with(
+          nested_df,
+          function(x) ("type"),
+          tidyselect::all_of(type_col)
         )
       }
       if (! ("batch" %in% names(nested_df) & "group" %in% names(nested_df))) {
@@ -383,12 +393,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         }
       )
       if (! classic) {
-      private$raw_ann$parent_genes <- lapply(
-        private$raw_ann$parent_genes,
-        function(x) {
-          fastmatch::fmatch(na.omit(x), private$gene_ids)
-        }
-      )
+        private$raw_ann$parent_genes <- lapply(
+          private$raw_ann$parent_genes,
+          function(x) {
+            fastmatch::fmatch(na.omit(x), private$gene_ids)
+          }
+        )
       }
       nested_dt$gene_inputs <- lapply(nested_dt$gene_inputs, function(x) {
         fastmatch::fmatch(na.omit(x), private$gene_ids)
@@ -404,7 +414,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       private$term_ids <- private$raw_ann$term
       # must not be sorted to be able to retrieve data
       private$term_names <- private$raw_ann$name
-      private$term_types <- as.factor(private$raw_ann$type)
+      private$term_types <- private$raw_ann$type
       private$raw_ann$parents <- lapply(private$raw_ann$parents, function(x) {
           as.integer(
             na.omit(fastmatch::fmatch(x, private$term_ids))
@@ -483,11 +493,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
     #' @description
     #' Return results
-    #' @param verbose replace
+    #' @param verbose Replace integer with IDs and add names for terms
     #' @return Nested data frame with results
     get_results = function(verbose = FALSE) {
+      results <- data.table::copy(private$results)
       if (verbose) {
-        results <- data.table::copy(private$results)
         results[, gene_inputs := lapply(gene_inputs, function(x) {
           private$gene_ids[x]
         })]
@@ -495,32 +505,40 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           private$gene_ids[x]
         })]
         results[, enrich := lapply(enrich, function(dt) {
-          dt[, genes := lapply(genes, function(x) {
+          new_dt <- data.table::copy(dt)
+          new_dt[, genes := lapply(genes, function(x) {
             private$gene_ids[x]
           })]
-          dt[, GI := lapply(GI, function(x) {
+          new_dt[, GI := lapply(GI, function(x) {
             private$gene_ids[x]
           })]
-          dt[, term := sapply(term, function(x) {
+          new_dt[, name := sapply(term, function(x) {
+            private$term_names[x]
+          }, USE.NAMES = FALSE)]
+          new_dt[, type := sapply(term, function(x) {
+            private$term_types[x]
+          }, USE.NAMES = FALSE)]
+          new_dt[, term := sapply(term, function(x) {
             private$term_ids[x]
           }, USE.NAMES = FALSE)]
-          dt[, parents := lapply(parents, function(x) {
+          new_dt[, parents := lapply(parents, function(x) {
             private$term_ids[x]
           })]
-          return(dt)
+          data.table::setcolorder(new_dt,
+            c("term", "name", "type", setdiff(names(new_dt), c("term", "name", "type"))))
+          return(new_dt)
         })]
-        return(results)
-      } else {
-        return(private$results)
       }
+      return(results)
     },
 
     #' @description
     #' Return result table after filtering
+    #' @param verbose Replace integer with IDs and add names for terms
     #' @return Nested data frame with results
     filter_and_get_results = function(
-      in_batch, in_group, in_type, in_ann_name) {
-      private$results[
+      in_batch, in_group, in_type, in_ann_name, verbose = FALSE) {
+      self$get_results(verbose)[
         batch %fin% in_batch &
         group %fin% in_group &
         type %fin% in_type &
@@ -530,16 +548,18 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
     #' @description
     #' Return results unnested
+    #' @param verbose Replace integer with IDs and add names for terms
     #' @return Unnested data frame with results
-    unnest_and_get_results = function() {
+    unnest_and_get_results = function(verbose = FALSE) {
+      results <- self$get_results(verbose)
       data.table::rbindlist(lapply(
-        seq_len(nrow(private$results)),
+        seq_len(nrow(results)),
         function(i) {
-          result <- data.table::copy(private$results[["enrich"]][[i]])
-          result$batch <- private$results[["batch"]][i]
-          result$group <- private$results[["group"]][i]
-          result$type <- private$results[["type"]][i]
-          result$ann_name <- private$results[["ann_name"]][i]
+          result <- data.table::copy(results[["enrich"]][[i]])
+          result$batch <- results[["batch"]][i]
+          result$group <- results[["group"]][i]
+          result$type <- results[["type"]][i]
+          result$ann_name <- results[["ann_name"]][i]
           result
         }
       ))
@@ -1505,11 +1525,37 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       return(summary_dt)
     },
 
+    #' Build Cluster Summary Table
+    #'
+    #' Constructs a summary table of the enrichment clusters.
+    #'
     #' @description
-    #' Build cluster summary table. A cluster summary with all information about
-    #' functional terms within.
-    #' @return a tibble table
-    build_cluster_summary_table = function() {
+    #' This method processes the results from previous enrichment analyses to compile
+    #' a detailed summary for each cluster. It focuses on aggregating minimum q-values
+    #' (adjusted p-values) for each cluster to assess the overall significance, alongside
+    #' other relevant term details.
+    #'
+    #' @param verbose Boolean, if TRUE, column names in the returned table are more descriptive.
+    #' The renaming adjusts column headers to be more human-readable and suitable for reports
+    #' or presentations. Specific changes include:
+    #'   - "cluster" becomes "Cluster"
+    #'   - "term" becomes "Term"
+    #'   - "name" becomes "Name"
+    #'   - "ann_name" becomes "Database"
+    #'   - "Ngenes" becomes "# of Genes"
+    #'   - "min_qval" becomes "Min q-value"
+    #' @return A tibble table containing a summary of the clusters with the following columns:
+    #'   - `cluster`: Cluster identifier (numeric or character based on input data).
+    #'   - `term`: Unique identifier for each term within a cluster.
+    #'   - `name`: Descriptive name of the term.
+    #'   - `ann_name`: Source database from which the term was derived.
+    #'   - `Ngenes`: Count of genes associated with each term.
+    #'   - `min_qval`: Minimum q-value observed within each cluster, reflecting the lowest
+    #'     adjusted p-value computed for terms within the cluster.
+    #'   - Additional columns representing each combination of batch, group, and type, formatted
+    #'     as 'batch|group|type', each containing the q-value for the term within that context.
+    #'
+    build_cluster_summary_table = function(verbose = FALSE) {
 
       select_res <- c(
         "cluster", "term", "name", "ann_name", "Ngenes", "batch", "group",
@@ -1518,6 +1564,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
       scl_table <- self$prepare_results_for_plot()$pval[, ..select_res]
       scl_table[, category := paste(batch, group, type, sep = "|")]
+      if (verbose) {
+        scl_table[, group := private$group_labels[batch]]
+        scl_table[, batch := private$batch_labels[batch]]
+      }
+      scl_table[, category := paste(batch, group, type, sep = "|")]
       scl_table[, c("batch", "group", "type") := NULL]
 
       cl_sum <- scl_table[, .(min_q_val = min(qval_bonferroni)), by = cluster]
@@ -1525,19 +1576,20 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       cl2min <- cl_sum$min_q_val
       setattr(cl2min, "names", cl_sum$cluster)
 
-      scl_table[["Min q-value"]] <- cl2min[scl_table[["cluster"]]]
-      setattr(scl_table[["Min q-value"]], "names", NULL)
+      scl_table[["min_q_val"]] <- cl2min[scl_table[["cluster"]]]
+      setattr(scl_table[["min_q_val"]], "names", NULL)
 
       wide_scl_table <- dcast(scl_table, ... ~ category,
         value.var = "qval_bonferroni")
 
-      wide_scl_table <- wide_scl_table[order(`Min q-value`)]
+      wide_scl_table <- wide_scl_table[order(`min_q_val`)]
 
       setattr(wide_scl_table$cluster, "names", NULL)
-
-      setnames(wide_scl_table, old = c("cluster", "term", "name", "ann_name",
-        "Ngenes"),
-        new = c("Cluster", "ID", "Name", "DB", "Size"))
+      if (verbose) {
+        setnames(wide_scl_table, old = c("cluster", "term", "name", "ann_name",
+          "Ngenes", "min_q_val"),
+          new = c("Cluster", "Term", "Name", "Database", "# of Genes", "Min q-value"))
+      }
 
       return(wide_scl_table)
     },
@@ -1573,7 +1625,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         dir.create(output_folder)
       }
       d_input <- dplyr::distinct(
-        private$results[, c("batch", "group", "type", "ann_name")])
+        self$get_results(verbose = TRUE)[,
+          c("batch", "group", "type", "ann_name")])
       for (batch in unique(d_input$batch)) {
         d_input_batch <- dplyr::filter(d_input, .data$batch == .env$batch)
         for (group in unique(d_input_batch$group)) {
@@ -1584,11 +1637,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
             type <- d_input_batch_group$type[i]
             ann_name <- d_input_batch_group$ann_name[i]
             sheet_name <- paste(type, ann_name, sep = "_")
-            v_tables[[sheet_name]] <- dplyr::filter(private$results,
-              .data$batch == .env$batch &
-              .data$group == .env$group &
-              .data$type == .env$type &
-              .data$ann_name == .env$ann_name)$enrich[[1]]
+            v_tables[[sheet_name]] <-
+              dplyr::filter(self$get_results(verbose = TRUE),
+                .data$batch == .env$batch &
+                .data$group == .env$group &
+                .data$type == .env$type &
+                .data$ann_name == .env$ann_name)$enrich[[1]]
             v_tables[[sheet_name]][["cluster"]] <-
               private$clusters[v_tables[[sheet_name]][["term"]]]
             v_tables[[sheet_name]] <- v_tables[[sheet_name]][,
@@ -1636,7 +1690,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         }
       }
       if (write_cluster_summary) {
-        scl_table <- self$build_cluster_summary_table()
+        scl_table <- self$build_cluster_summary_table(verbose = TRUE)
         for (qname in names(scl_table)[6:ncol(scl_table)]) {
             class(scl_table[[qname]]) <- "scientific"
         }
@@ -1645,7 +1699,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           list(
             Summary = scl_table,
             Occurences = self$count_gene_per_cluster(id2name = id2name,
-              new_name_label = new_name_label)
+              new_name_label = new_name_label, verbose = TRUE)
           ),
           paste(
               output_folder,

@@ -2,14 +2,55 @@
 
 NULL
 
-#' Load annotation space
-#' @param ann_sources named character vector with database code and database
-#' path (see \link{enrich}) ann_source arg
-#' @param ann_types named character vector with database code as keys and
-#' database types to keep (see \link{enrich}) type_keep arg. Default is to
-#' keep all.
-#' @param compute_parent_genes whether to compute or not parent genes
-#' @return a data.table
+#' Load Annotation Space
+#'
+#' This function loads gene annotations from specified sources, such as 
+#' databases or files, and processes them into a structured format suitable for
+#' further analysis. 
+
+#' Annotations typically define the notion of "terms" which can represent 
+#' biological pathways, communities of genes in coexpression networks, or other 
+#' relevant biological groupings. These terms might be organized hierarchically 
+#' using directed acyclic graphs (DAGs) in systems like Gene Ontology or 
+#' Reactome, allowing for the representation of complex biological
+#' relationships.
+#'
+#' @param ann_sources Named character vector with keys as database codes and 
+#' values as paths to tabular files containing annotations. 
+#' Each file must include the following columns:
+#'   - `term`: Short identifier of the term.
+#'   - `genes`: Semicolon-separated list of gene identifiers associated with
+#'     each term.
+#'   - `type`: Character string defining the category of the term, e.g., 
+#'     Biological Process, Molecular Function, or Cellular Component in the
+#'     context of Gene Ontology.
+#'   - `name`: Descriptive name or long identifier of the term.
+#'   - `parents`: Comma-separated list of parent terms' identifiers, reflecting 
+#'     the hierarchical structure in databases using DAGs to organize terms.
+#' @param ann_types Named character vector with keys as database codes and 
+#' values specifying
+#' the types of terms to retain from the annotations. The default behavior is to
+#' keep all types. This parameter filters terms based on their `type` field.
+#' @param compute_parent_genes Logical, indicating whether to compute a
+#' collective list of genes for each term by incorporating genes from its parent
+#' terms. Defaults to TRUE.
+#' @param use_parents_union Logical, indicating how to handle gene lists from
+#' parent terms:
+#'   - If TRUE, computes the union of genes across all parent terms.
+#'   - If FALSE, computes the intersection of genes across all parent terms.
+#'
+#' @return A data.table object structured as follows:
+#'   - `term`: Short identifier of the term.
+#'   - `name`: Long name or descriptive identifier of the term.
+#'   - `genes`: List of gene identifiers associated with each term.
+#'   - `parents`: List of parent terms' identifiers.
+#'   - `parent_genes`: Computed list of genes derived from parent terms, present
+#'     only if
+#'     `compute_parent_genes` is TRUE.
+#'   - `type`: Category of the term, consistent with the `type` field in the
+#'     input files.
+#'   - `ann_name`: Database code from which each term was sourced, aligning with
+#'     keys in `ann_sources`.
 #' @export
 load_ann_space <- function(ann_sources, ann_types, compute_parent_genes = TRUE,
 use_parents_union = TRUE) {
