@@ -1586,7 +1586,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       wide_scl_table <- dcast(scl_table, ... ~ category,
         value.var = "qval_bonferroni")
 
-      data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_cat)
+      data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_term)
 
       setattr(wide_scl_table$cluster, "names", NULL)
       if (verbose) {
