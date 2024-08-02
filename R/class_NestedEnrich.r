@@ -1563,12 +1563,15 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       )
 
       scl_table <- self$prepare_results_for_plot()$pval[, ..select_res]
-      scl_table[, category := paste(batch, group, type, sep = "|")]
       if (verbose) {
-        scl_table[, group := private$group_labels[batch]]
-        scl_table[, batch := private$batch_labels[batch]]
+        scl_table[, category := paste(
+          private$batch_labels[batch],
+          private$group_labels[group],
+          type, sep = "|")]
+      } else {
+        scl_table[, category := paste(batch, group, type, sep = "|")]
       }
-      scl_table[, category := paste(batch, group, type, sep = "|")]
+      
       scl_table[, c("batch", "group", "type") := NULL]
 
       cl_sum <- scl_table[, .(min_q_val = min(qval_bonferroni)), by = cluster]
