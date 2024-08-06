@@ -550,3 +550,8 @@ test_that("Check value type and size", {
   expect_true(is.character(q_extra_occurences) && length(q_extra_occurences) > 0)
   expect_true(is.character(q_cluster_occurences) && length(q_cluster_occurences) > 0)
 })
+
+## test pval matrix
+test_enrich$build_and_set_p_matrix()
+test_enrich$build_and_set_hclust(method_dist = "jaccard", matrix_type = "pval")
+

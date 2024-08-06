@@ -732,6 +732,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       rn <- dt_wide$term
       dt_wide[, term := NULL]
       private$p_matrix <- as.matrix(dt_wide)
+      private$p_matrix[is.na(private$p_matrix)] <- 1
       rownames(private$p_matrix) <- rn
     },
 
@@ -771,16 +772,18 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @return NULL
     build_and_set_hclust = function(method_dist = "cosine", #nolint
       method_hclust = "ward.D2", using_pvclust = FALSE, dim_reduce = 6,
-      matrix_type = "incidence", prcomp_args = list() ,...) { #nolint
+      matrix_type = "incidence", prcomp_args = list(), 
+      pval_fun = log10, 
+      ...) { #nolint
       private$using_pvclust <- using_pvclust
 
       # build matrix
       if (matrix_type == "incidence") {
         mat <- private$i_matrix
       } else if (matrix_type == "pval") {
-        mat <- private$p_matrix
+        mat <- apply(private$p_matrix, c(1,2), pval_fun)
       } else if (matrix_type == "both") {
-        mat <- cbind(private$i_matrix, private$p_matrix)
+        mat <- cbind(private$i_matrix, apply(private$p_matrix, c(1,2), pval_fun))
       } else {
         logging::logerror("Incorrect value for matrix_type")
         stop()
