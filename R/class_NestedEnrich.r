@@ -770,10 +770,10 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' 0/False
     #' @param ... additional parameters for pvclust or hclust
     #' @return NULL
-    build_and_set_hclust = function(method_dist = "cosine", #nolint
+    build_and_set_hclust = function(method_dist = "jaccard", #nolint
       method_hclust = "ward.D2", using_pvclust = FALSE, dim_reduce = 6,
       matrix_type = "incidence", prcomp_args = list(), 
-      pval_fun = log10, 
+      pval_fun = log10,
       ...) { #nolint
       private$using_pvclust <- using_pvclust
 
@@ -928,11 +928,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' cut hclust return a named integer vector. Each term is linked with its
     #' cluster id. Finally, the orphan terms are given an additional id.
     #' @param value value to cut the tree
-    #'   - p-values for pvclust (see pvclust::pvpick)
-    #'   - number of groups for hclust
+    #'   - p-values for pvclust (see pvclust::pvpick), default = 0.8
+    #'   - number of groups for hclust, default = 8
     #' @param min_size for pvclust only, the minimum size of clusters
     #' @param max_size for pvclust only, the minimum size of clusters
-    #' @param rm_redundancy_method Method
+    #' @param rm_redundancy_method Method to remove the redundancy
     #' - "largest" : select the largest group for a term to be in only one
     #' cluster
     #' - "smallest" : select the smallest group for a term to be in only one
@@ -1016,8 +1016,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           tab_cluster$n_parents <- get_n_parents(tab_cluster)
           if (min_size_only_to_children) {
             results <- dplyr::filter(tab_cluster,
-              .data$n >= .env$min_size &
-              .data$n_parents > 0
+              .data$n >= .env$min_size |
+              .data$n_parents == 0
             )
           } else {
             results <- dplyr::filter(tab_cluster,
@@ -1031,8 +1031,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           tab_cluster$n_children <- get_n_children(tab_cluster)
           if (max_size_only_to_parents) {
             results <- dplyr::filter(tab_cluster,
-              .data$n <= .env$max_size &
-              .data$n_children > 0
+              .data$n <= .env$max_size |
+              .data$n_children == 0
             )
           } else {
             results <- dplyr::filter(tab_cluster,
@@ -1041,13 +1041,19 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           }
           return(results)
         }
+        tab_cluster$n_parents <- get_n_parents(tab_cluster)
+        tab_cluster$n_children <- get_n_children(tab_cluster)
 
         if (filter_max_size_first) {
           tab_cluster <- filter_max_size(tab_cluster, max_size_only_to_parents)
+          tab_cluster$n_parents <- get_n_parents(tab_cluster)
+          tab_cluster$n_children <- get_n_children(tab_cluster)
           tab_cluster <- filter_min_size(tab_cluster, min_size_only_to_children)
         } else {
-          tab_cluster <- filter_min_size(tab_cluster, max_size_only_to_parents)
-          tab_cluster <- filter_max_size(tab_cluster, min_size_only_to_children)
+          tab_cluster <- filter_min_size(tab_cluster, min_size_only_to_children)
+          tab_cluster$n_parents <- get_n_parents(tab_cluster)
+          tab_cluster$n_children <- get_n_children(tab_cluster)
+          tab_cluster <- filter_max_size(tab_cluster, max_size_only_to_parents)
         }
 
         tab_cluster$n_parents <- get_n_parents(tab_cluster)

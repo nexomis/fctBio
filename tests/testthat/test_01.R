@@ -388,6 +388,7 @@ hclust_null <- test_enrich$get_hclust()
 clusters_null <- test_enrich$get_clusters()
 
 test_enrich$filter_and_set_significant_results(0.05)
+test_enrich$build_and_set_hclust(method_dist = "cosine")
 imat <- test_enrich$get_i_matrix()
 p_1 <- sum(imat) / (nrow(imat) * ncol(imat))
 
@@ -555,3 +556,48 @@ test_that("Check value type and size", {
 test_enrich$build_and_set_p_matrix()
 test_enrich$build_and_set_hclust(method_dist = "jaccard", matrix_type = "pval")
 
+test_enrich$build_and_set_hclust(method_dist = "jaccard", parallel = 4L, nboot = 100, iseed = 42, using_pvclust = T)
+
+
+test_that("plot with pvclust", {
+  test_enrich$cut_hclust_and_set_clusters(
+    0.7,
+    min_size = 5, max_size = 8,
+    max_size_only_to_parents = TRUE, 
+    min_size_only_to_children = TRUE,
+    filter_max_size_first = TRUE,
+    rm_redundancy_method = "largest"
+  )
+  vdiffr::expect_doppelganger("pv_cluster_default",
+    test_enrich$plot_hclust())
+  test_enrich$cut_hclust_and_set_clusters(
+    0.7,
+    min_size = 3, max_size = 8,
+    max_size_only_to_parents = TRUE, 
+    min_size_only_to_children = FALSE,
+    filter_max_size_first = TRUE,
+    rm_redundancy_method = "largest"
+  )
+  vdiffr::expect_doppelganger("pv_cluster_min3_max8_not_min_size_only_to_children",
+    test_enrich$plot_hclust())
+  test_enrich$cut_hclust_and_set_clusters(
+    0.7,
+    min_size = 3, max_size = 8,
+    max_size_only_to_parents = TRUE, 
+    min_size_only_to_children = TRUE,
+    filter_max_size_first = TRUE,
+    rm_redundancy_method = "smallest"
+  )
+  vdiffr::expect_doppelganger("pv_cluster_min3_max8_smallest",
+    test_enrich$plot_hclust())
+  test_enrich$cut_hclust_and_set_clusters(
+    0.7,
+    min_size = 3, max_size = 8,
+    max_size_only_to_parents = TRUE, 
+    min_size_only_to_children = TRUE,
+    filter_max_size_first = FALSE,
+    rm_redundancy_method = "smallest"
+  )
+  vdiffr::expect_doppelganger("pv_cluster_min3_max8_smallest_filter_min_first",
+    test_enrich$plot_hclust())
+})
