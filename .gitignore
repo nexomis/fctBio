@@ -42,3 +42,4 @@ test/out_dir
 **.RData
 **.Rhistory
 /vignettes/*_files
+/vignettes/*.R

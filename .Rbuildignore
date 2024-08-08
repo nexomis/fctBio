@@ -19,7 +19,3 @@
 ^compute_ssh
 ^\.ci
 ^\.gitlab-ci.yml
-^doc
-^Meta
-^doc$
-^Meta$

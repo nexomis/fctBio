@@ -12,8 +12,7 @@ message("### Install depedencies ###")
 devtools::install_local(path = path,
   force = TRUE,
   build = TRUE,
-  upgrade = "never",
-  build_vignettes = FALSE)
+  upgrade = "never")
 
 message("### roxygenize load classic ###")
 
