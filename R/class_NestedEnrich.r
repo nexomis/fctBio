@@ -768,6 +768,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' keep.
     #' @param prcomp_args prcomp args that are passed if dim_reduce is not
     #' 0/False
+    #' @param pval_fun function to transform the p-values before clustering
     #' @param ... additional parameters for pvclust or hclust
     #' @return NULL
     build_and_set_hclust = function(method_dist = "jaccard", #nolint

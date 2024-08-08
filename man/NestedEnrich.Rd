@@ -71,7 +71,6 @@ specified parameters.
   lim_pmin = 0.05,
   classic = FALSE,
   log_level = "WARN",
-  do_cluster_analysis = TRUE,
   hard_pmin_filter = TRUE,
   ...
 )}\if{html}{\out{</div>}}
@@ -120,8 +119,6 @@ unless \code{hard_pmin_filter} is set to FALSE.}
 \item{\code{classic}}{Boolean; if TRUE, performs analysis relative to the universe of genes.}
 
 \item{\code{log_level}}{Logging level as defined by the logging package.}
-
-\item{\code{do_cluster_analysis}}{Boolean; if FALSE, skips the automatic clustering analysis.}
 
 \item{\code{hard_pmin_filter}}{Boolean; if TRUE, removes gene sets with p-values below \code{lim_pmin}.}
 
@@ -381,12 +378,13 @@ pvclust or using a p-value threshold of 0.8 in case of using pvclust.
 Methods are available to modify these defaults.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$build_and_set_hclust(
-  method_dist = "cosine",
+  method_dist = "jaccard",
   method_hclust = "ward.D2",
   using_pvclust = FALSE,
   dim_reduce = 6,
   matrix_type = "incidence",
   prcomp_args = list(),
+  pval_fun = log10,
   ...
 )}\if{html}{\out{</div>}}
 }
@@ -415,6 +413,8 @@ keep.}
 
 \item{\code{prcomp_args}}{prcomp args that are passed if dim_reduce is not
 0/False}
+
+\item{\code{pval_fun}}{function to transform the p-values before clustering}
 
 \item{\code{...}}{additional parameters for pvclust or hclust}
 }
@@ -503,8 +503,8 @@ cluster id. Finally, the orphan terms are given an additional id.
 \describe{
 \item{\code{value}}{value to cut the tree
 \itemize{
-\item p-values for pvclust (see pvclust::pvpick)
-\item number of groups for hclust
+\item p-values for pvclust (see pvclust::pvpick), default = 0.8
+\item number of groups for hclust, default = 8
 }}
 
 \item{\code{min_size}}{for pvclust only, the minimum size of clusters}
@@ -520,7 +520,7 @@ cluster that are child (are included by other clusters)}
 \item{\code{filter_max_size_first}}{whether to filter based on max_size before
 min_size. The order might have an impact on clusters kept.}
 
-\item{\code{rm_redundancy_method}}{Method
+\item{\code{rm_redundancy_method}}{Method to remove the redundancy
 \itemize{
 \item "largest" : select the largest group for a term to be in only one
 cluster
@@ -660,7 +660,12 @@ plot_enrich with pval
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{p_type}}{Type of p-value to consider (e.g., raw p-value, adjusted p-value).}
+\item{\code{p_type}}{type of pvalue to use:
+\itemize{
+\item "pval" : raw p-value
+\item "qval_bh" : q-value using Benjamini Hochberg
+\item "qval_bonferroni": q-value using Bonferoni
+}}
 
 \item{\code{...}}{arguments passed to \code{prepare_results_for_plot}}
 }
@@ -768,7 +773,7 @@ a detailed summary for each cluster. It focuses on aggregating minimum q-values
 (adjusted p-values) for each cluster to assess the overall significance, alongside
 other relevant term details.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$build_cluster_summary_table(verbose = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$build_cluster_summary_table(verbose = FALSE, p_type = "qval_bh")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -784,6 +789,13 @@ or presentations. Specific changes include:
 \item "ann_name" becomes "Database"
 \item "Ngenes" becomes "# of Genes"
 \item "min_qval" becomes "Min q-value"
+}}
+
+\item{\code{p_type}}{type of pvalue to use:
+\itemize{
+\item "pval" : raw p-value
+\item "qval_bh" : q-value using Benjamini Hochberg
+\item "qval_bonferroni": q-value using Bonferoni
 }}
 }
 \if{html}{\out{</div>}}
@@ -813,7 +825,8 @@ write the enrichment data into xlsx files
   output_folder = ".",
   id2name = NULL,
   new_name_label = "Tested Gene Name",
-  write_cluster_summary = TRUE
+  write_cluster_summary = TRUE,
+  p_type = "qval_bh"
 )}\if{html}{\out{</div>}}
 }
 
@@ -828,6 +841,13 @@ write the enrichment data into xlsx files
 
 \item{\code{write_cluster_summary}}{whether to write or not the summary
 of all cluster}
+
+\item{\code{p_type}}{type of pvalue to use:
+\itemize{
+\item "pval" : raw p-value
+\item "qval_bh" : q-value using Benjamini Hochberg
+\item "qval_bonferroni": q-value using Bonferoni
+}}
 }
 \if{html}{\out{</div>}}
 }

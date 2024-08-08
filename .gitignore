@@ -9,8 +9,7 @@ issue.txt
 
 # ignore build files
 inst/doc
-doc
-Meta
+
 documentation.pdf
 
 # ignor test files but not test dir
@@ -42,3 +41,4 @@ test/out_dir
 **/Rplot*
 **.RData
 **.Rhistory
+/vignettes/*_files

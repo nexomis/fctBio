@@ -28,3 +28,9 @@ See the vignette `Examples`
 ```
 cat R/* | grep "::" | sed -re "s/.*[\(\[ ]([a-zA-Z0-9_]+)\:\:.*/\1/g" | sort -u | xargs | sed 's/ /, /g'
 ```
+# build vignette
+
+```
+docker build -t r_vignettes .ci
+docker run -u $UID:$GID -v $PWD:$PWD -w $PWD r_vignettes Rscript .ci/build_vignettes.r
+```

@@ -1,0 +1,364 @@
+---
+title: "fctBio Overview"
+author: "Julien FOURET"
+date: "03/08/2024"
+output: 
+  rmarkdown::html_vignette:
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Overview}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  cache = TRUE,
+  echo = TRUE,
+  out.width = "90%",
+  fig.width = 6.5, 
+  fig.height = 5.5
+)
+```
+
+# Introduction 
+
+`fctBio` is an R package designed for the analysis of functional biology data, particularly focusing on the enrichment analysis of genes across various biological datasets. This vignette provides a detailed walkthrough of the `fctBio` package, demonstrating how to perform nested enrichment analysis, visualize results, and interpret complex biological data. Starting with data simulation and moving through various analysis stages, we aim to give you a practical and comprehensive understanding of the package's capabilities.
+
+## Install
+
+```{r eval=FALSE}
+
+```
+
+## Simulate input data
+
+Here we simulate a dataset to demonstrate how `fctBio` can be utilized. We create a nested tibble with gene sets categorized by batch, group, and type. This simulated data mimics a typical workflow scenario where multiple conditions and experimental setups are analyzed.
+
+The structure of the input format is specified in `NestedEnrich$new` constructor method.
+
+```{r, echo=TRUE, class.source = "fold-hide"}
+
+base <- "go"
+file_base <- system.file("extdata",
+                         paste("human_functional_annotations",
+                               base, "data.tab", sep = "/"),
+                         package = "fctBio"
+)
+tab_base <- read.delim(file_base)
+
+# response to type I interferon
+# antiviral innate immune response
+l1 <- stringr::str_split(paste(tab_base[tab_base$term %in%
+                                          c("GO:0034340", "GO:0140374"), "genes"], collapse = ";"), ";")
+l2 <- stringr::str_split(paste(tab_base[tab_base$term %in%
+                                          c("GO:0002347"), "genes"], collapse = ";"), ";")
+l3 <- stringr::str_split(paste(tab_base[tab_base$term %in%
+                                          c("GO:0070914"), "genes"], collapse = ";"), ";")
+l4 <- stringr::str_split(paste(tab_base[c(20, 30, 40),
+                                        "genes"], collapse = ";"), ";")
+l5 <- stringr::str_split(paste(tab_base[tab_base$term %in%
+                                          c("GO:0042246"), "genes"], collapse = ";"), ";")
+l6 <- stringr::str_split(paste(tab_base[c(25, 35, 45),
+                                        "genes"], collapse = ";"), ";")
+
+l1 <- unique(unlist(l1))
+l2 <- unique(unlist(l2))
+l3 <- unique(unlist(l3))
+l4 <- unique(unlist(l4))
+l5 <- unique(unlist(l5))
+l6 <- unique(unlist(l6))
+
+l1 <- l1[1:floor(0.9 * length(l1))]
+l2 <- l2[1:floor(0.9 * length(l2))]
+l3 <- l3[1:floor(0.9 * length(l3))]
+l4 <- l4[1:floor(0.3 * length(l4))]
+l5 <- l5[1:floor(0.9 * length(l5))]
+l6 <- l6[1:floor(0.3 * length(l6))]
+
+data <- tibble::tibble(
+  batch = c("b1", "b1", "b2", "b2", "b1", "b1", "b2", "b2"),
+  group = c("g1", "g2", "g1", "g2", "g1", "g2", "g1", "g2"),
+  type = c("upregulated", "upregulated", "upregulated", "upregulated",
+           "downregulated", "downregulated", "downregulated", "downregulated"),
+  data = list(
+    tibble::tibble(
+      uniprot = unique(c(l1, l2, l4)),
+      symbol = unique(c(l1, l2, l4))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l1, l3, l4)),
+      symbol = unique(c(l1, l3, l4))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l2, l4)),
+      symbol = unique(c(l2, l4))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l3, l4)),
+      symbol = unique(c(l3, l4))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l5, l6)),
+      symbol = unique(c(l5, l6))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l5, l6)),
+      symbol = unique(c(l5, l6))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l5, l6)),
+      symbol = unique(c(l5, l6))
+    ),
+    tibble::tibble(
+      uniprot = unique(c(l5, l6)),
+      symbol = unique(c(l5, l6))
+    )
+  )
+)
+
+```
+
+## Build the annotation space
+
+```{r, echo=TRUE}
+
+ann_sources <- c(
+  GO = system.file(
+    "extdata",
+    paste("human_functional_annotations",
+      "go", "data.tab", sep = "/"),
+    package = "fctBio"
+  ),
+  RC = system.file(
+    "extdata",
+    paste("human_functional_annotations",
+      "reactome", "data.tab", sep = "/"),
+    package = "fctBio"
+  )
+)
+
+ann_types <- c(
+  GO = c("biological_process")
+)
+
+ann_space <- fctBio::load_ann_space(ann_sources, ann_types)
+```
+
+Below you can examine the first 5 lines of the annotation spaces, except for gene lists.
+
+```{r, echo=TRUE}
+knitr::kable(head(ann_space,n = 5)[,c("term","name","parents","type","ann_name")])
+```
+
+The structure of the gene lists is detailed below the the first 2 lines.
+
+```{r}
+str(head(ann_space,n = 2)[,c("genes","parent_genes")])
+```
+
+Below is an example after filtering for another annatation space.
+
+```{r}
+knitr::kable(head(
+  dplyr::filter(ann_space, .data$ann_name == "RC")
+  ,n = 5)[,c("term","name","parents","type","ann_name")])
+```
+
+
+> Importantly the id used here are uniprot IDs, they must match the ids from your gene lists to analyze. Usually it's a good thing to work with protein IDs for functional studies.
+
+## Initiate the Nested Enrich Object 
+
+We initiate an object of `NestedEnrich` class with the simulated data and annotation space. This object is initiated with the enrichment analyses that are then stored within.
+
+```{r}
+test_enrich <- fctBio::NestedEnrich$new(data, ann_space)
+```
+
+## Setting thresholds and filtering results
+
+We can define different thresholds to filter significant results for further analysis.
+
+```{r}
+test_enrich$filter_and_set_significant_results(
+  0.05, p_type = "qval_bonferroni", min_signif_term_for_clust = Inf)
+```
+
+## Build matrices for clustering and analysis
+
+Matrices such as the incidence matrix and p-value matrix are built for visualizing and clustering analysis. To analyze the relation between terms we can work on 2 main types of matrix, the gene-term incidence matrix or the pval matrix with enrichiment results for the different batch, group and type combinations.
+
+
+```{r}
+test_enrich$build_and_set_i_matrix()
+test_enrich$build_and_set_p_matrix()
+
+```
+
+Below is a visualization of the gene-term incidence matrix.
+
+```{r}
+head_imatrix <- data.frame(test_enrich$get_i_matrix()[1:20,1:30])
+
+head_imatrix$Row <- rownames(head_imatrix)
+
+# Transform to long format
+head_imatrix <- tidyr::pivot_longer(head_imatrix, 
+                        cols = -Row, 
+                        names_to = "Column", 
+                        values_to = "Value")
+
+# Plot using ggplot2
+ggplot2::ggplot(head_imatrix, ggplot2::aes(x = Column, y = Row, fill = as.factor(Value))) +
+  ggplot2::geom_tile(color = "white") + 
+  ggplot2::scale_fill_manual(values = c("0" = "white", "1" = "black")) +
+  ggplot2::theme_minimal() +
+  ggplot2::guides(fill="none") +
+  ggplot2::labs(x = "Columns", y = "Rows", fill = "Value") +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+```
+
+Below is the visualization for the p-value based matrix.
+
+```{r}
+head_pmatrix <- data.frame(test_enrich$get_p_matrix()[1:20, ])
+
+head_pmatrix$Row <- rownames(head_pmatrix)
+
+# Transform to long format
+head_pmatrix <- tidyr::pivot_longer(head_pmatrix, 
+                        cols = -Row, 
+                        names_to = "Column", 
+                        values_to = "Value")
+head_pmatrix$Value[is.na(head_pmatrix$Value)] <- 1
+# Plot using ggplot2
+ggplot2::ggplot(head_pmatrix, ggplot2::aes(x = Column, y = Row, fill = -log10(Value))) +
+  ggplot2::geom_tile(color = "white") + 
+  ggplot2::scale_fill_gradient(high = "black", low = "white") +
+  ggplot2::theme_minimal() +
+  ggplot2::guides(fill=FALSE) +
+  ggplot2::labs(x = "Columns", y = "Rows", fill = "Value") +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+
+```
+
+
+## Gene-term incidence clustering and analysis
+
+We can perform clustering based on gene-term incidences to identify significant patterns and groupings within the data based on the shared genes between clusters.
+
+```{r}
+test_enrich$build_and_set_hclust(method_dist = "jaccard")
+test_enrich$plot_hclust()
+```
+## Combined plot
+
+The combined plot will show the different p-values per enrichment organized as batches and groups (using faceting) and using types for the fill color and x-axis.
+
+Visualizing multiple aspects of the data simultaneously helps in understanding the relationships and significance of the analyzed terms.
+
+In addition terms are grouped based on their clustering.
+
+Of note, aligned to the right lie the information for each terms regarding the size of the set and its associated super-set (parents).
+
+
+```{r}
+test_enrich$plot_combined(max_term_per_cluster = 4)
+```
+
+## P-value-based clustering and analysis
+
+Of note you can build the hierarchical clustering using the p-value matrix in place of the gene-term incidence matrix.
+
+This kinds of analysis should groups terms that are often affected in similar batch/group without considering their shared genes and can highlight unexpected insights.
+
+```{r}
+test_enrich$build_and_set_hclust(method_dist = "jaccard", matrix_type = "pval")
+test_enrich$plot_hclust()
+```
+
+We can also use the combined plot after clustering.
+
+```{r}
+test_enrich$plot_combined(max_term_per_cluster = 4)
+```
+
+## Advanced clustering with pvclust
+
+For statistically robust clustering, we use `pvclust` to challenge the stability of the clusters.
+
+```{r}
+test_enrich$build_and_set_hclust(method_dist = "jaccard",using_pvclust = T, parallel = 12L)
+```
+
+
+As shown below we can plot the `pvclust` object to get an idea of the probability values.
+
+
+```{r}
+hc <- test_enrich$get_hclust()
+plot(hc)
+```
+
+
+
+```{r}
+test_enrich$cut_hclust_and_set_clusters(
+  0.9,
+  min_size = 2,
+  max_size = 8,
+  rm_redundancy_method = "largest"
+  )
+test_enrich$plot_hclust()
+```
+
+
+In a previous analysis, where we used the gene-term incidence matrix for classical clustering, we observed that previously identified Cluster 1 is subdivided here into smaller clusters at a lower hierarchical level, indicating finer distinctions within the group. 
+
+
+In contrast, Clusters 9 and 10 even with a root at a relatively higher hierarchical level, are conserved as cluster, suggesting a more consolidated or unified grouping within these clusters. 
+
+
+It is important to emphasize that beyond the measured distances or potential biases from branch attraction, the key aspect of this analysis is the stability of clusters across bootstrap replicates. This stability helps us ascertain the reliability and consistency of the clustering results, independent of the distance metrics and clustering methodology employed.
+
+## Cluster summary
+
+To summarize the results, we can extract a table displaying all terms along with their respective p-values for each combination of batch, group, and type. This table also includes cluster annotations and term names, offering a comprehensive view of the data as shown below:
+
+```{r}
+sum_table <- head(test_enrich$build_cluster_summary_table())
+names(sum_table) <- stringr::str_replace_all(names(sum_table), "\\|", ":")
+kableExtra::scroll_box(knitr::kable(sum_table, digits = 10), width = "100%")
+
+```
+
+## Gene Occurrence Analysis
+
+Additionally, we can analyze the occurrences of genes across clusters to understand their distribution and significance within each cluster `x_cluster`. Genes occurences are also computed by terms both intra cluster `intra_x_term` (how many times within the cluster) or globally `extra_x_term` and also in how many batch `x_batch` and group`x_group`.
+
+
+```{r}
+ct_table <- head(test_enrich$count_gene_per_cluster())
+knitr::kable(ct_table)
+```
+
+## Verbose option and write to XLSX
+
+Both the `build_cluster_summary_table` and `count_gene_per_cluster` functions include a verbose option, which outputs column names that are more human-readable. This feature facilitates easier interpretation and reporting of the data. For detailed usage, please consult the function documentation.
+
+
+> **Note: An additional feature allows the translation of protein IDs into another identifier, such as gene names, using a named vector as a dictionary.**
+
+
+Furthermore, all enrichment results, along with the synthesized tables, can be exported to an XLSX file using the `write_xlsx` method. This functionality supports comprehensive reporting and sharing of results. For more information on how to use this feature, please refer to the documentation.
+
+## Conclusion
+
+This vignette has guided you through key functionalities of the `fctBio` package, demonstrating how to perform and interpret nested enrichment analyses, visualize data in informative ways, and export results for further use. By leveraging these tools, researchers can gain deeper insights into their biological data, enabling more informed decisions in their scientific inquiries. Whether for academic research, pharmaceutical development, or other fields of genomics and proteomics, `fctBio` provides robust support for exploring and understanding complex datasets.
+
+
+
+
+
