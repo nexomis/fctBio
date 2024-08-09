@@ -8,8 +8,6 @@ fctBio.Rproj
 issue.txt
 
 # ignore build files
-inst/doc
-
 documentation.pdf
 
 # ignor test files but not test dir
@@ -43,3 +41,6 @@ test/out_dir
 **.Rhistory
 /vignettes/*_files
 /vignettes/*.R
+
+/Meta
+/doc

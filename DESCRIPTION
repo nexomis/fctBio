@@ -40,7 +40,7 @@ Suggests:
     testthat (>= 3.0.0),
     tibble,
     vdiffr
-VignetteBuilder: knitr, rmarkdown
+VignetteBuilder: knitr, rmarkdown, kableExtra
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Collate: 

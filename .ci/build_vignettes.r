@@ -15,4 +15,5 @@ devtools::install_local(path = path,
   build_vignettes = FALSE)
 
 devtools::build_vignettes()
-
+dir.create("inst/doc")
+file.copy(dir("doc", full.names=TRUE), "inst/doc", overwrite=TRUE)
