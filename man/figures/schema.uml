@@ -1,0 +1,59 @@
+@startuml
+[*] --> load_ann_space
+load_ann_space: * Process Input databases
+load_ann_space: * Type-filtering and renaming 
+load_ann_space: * Compute parent gene lists
+note left
+ **""Systems Biology databases""**
+ **""Filtered Types""**
+end note
+load_ann_space --> NestedEnrich
+state NestedEnrich {
+  new: * Initiate Object
+  new: * Computes enrichments
+  note left
+   **""Nested data frame""**
+   **""Multiple input gene lists""**
+  end note
+  new --> filter_and_set_significant_results
+  filter_and_set_significant_results: * Select the significant terms
+  filter_and_set_significant_results: * Affect further analysis
+  filter_and_set_significant_results: * Automatic after new
+  filter_and_set_significant_results --> build_and_set_i_matrix
+  build_and_set_i_matrix: * Automatic
+  filter_and_set_significant_results --> build_and_set_p_matrix
+  build_and_set_p_matrix: * Automatic
+  build_and_set_i_matrix --> build_and_set_hclust
+  build_and_set_p_matrix --> build_and_set_hclust
+  build_and_set_hclust: * Build hierarchical clustering
+  build_and_set_hclust: * Use matrices (options)
+  build_and_set_hclust: * Automatic
+  build_and_set_hclust --> cut_hclust_and_set_clusters
+  cut_hclust_and_set_clusters: * Cut clusters for analysis
+  cut_hclust_and_set_clusters: * Using hierarchical clustering
+  cut_hclust_and_set_clusters: * Automatic
+
+  frame analyse {
+    plot_combined -[hidden]-> plot_hclust
+plot_combined: * Summary plots with p-values
+plot_combined: * x-facet: Batch and Groups
+plot_combined: * y-facet: Clusters
+plot_hclust: * Dendogram representation
+plot_hclust: * Cluster identified
+    build_cluster_summary_table -[hidden]-> count_gene_per_cluster
+build_cluster_summary_table: List terms per clusters
+build_cluster_summary_table: P-values across Batches and Groups
+count_gene_per_cluster: * Count all gene occurences
+count_gene_per_cluster: * Per cluster and terms globally
+count_gene_per_cluster: * Per term intra cluster
+    write_xlsx: * writes all enrichment tables
+    write_xlsx: * Translates to Gene Name
+    write_xlsx: * Writes build_cluster_summary_table
+    write_xlsx: * Writes count_gene_per_cluster
+  }
+  new --> analyse
+  filter_and_set_significant_results --> analyse
+  build_and_set_hclust --> analyse
+  cut_hclust_and_set_clusters --> analyse
+}
+@enduml

@@ -2,6 +2,8 @@
 
 First clone the repository to `PATH` and then install on R.
 
+![schema](man/figures/schema.png)
+
 ## 1.1 Build documentation
 
 ```

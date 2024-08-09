@@ -8,6 +8,8 @@ dir.create(temp_lib_path)
 
 message("### Install depedencies ###")
 
+unlink("inst/doc", recursive = TRUE)
+
 devtools::install_local(path = path,
   force = TRUE,
   build = TRUE,
