@@ -1634,89 +1634,103 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       if (!dir.exists(output_folder)) {
         dir.create(output_folder)
       }
-      d_input <- dplyr::distinct(
-        self$get_results(verbose = TRUE)[,
-          c("batch", "group", "type", "ann_name")])
-      for (batch in unique(d_input$batch)) {
-        d_input_batch <- dplyr::filter(d_input, .data$batch == .env$batch)
-        for (group in unique(d_input_batch$group)) {
+
+      # Call get_results once and store the result
+      results <- self$get_results(verbose = TRUE)
+
+      # Get unique combinations of batch, group, type, and ann_name
+      d_input <- unique(results[, .(batch, group, type, ann_name)])
+
+      # Iterate over batches
+      for (batch_var in unique(d_input$batch)) {
+        d_input_batch <- d_input[batch == batch_var]
+        # Iterate over groups
+        for (group_var in unique(d_input_batch$group)) {
           v_tables <- list()
-          d_input_batch_group <- dplyr::filter(d_input_batch,
-            .data$group == .env$group)
-          for (i in seq_along(d_input_batch_group)) {
-            type <- d_input_batch_group$type[i]
-            ann_name <- d_input_batch_group$ann_name[i]
-            sheet_name <- paste(type, ann_name, sep = "_")
-            v_tables[[sheet_name]] <-
-              dplyr::filter(self$get_results(verbose = TRUE),
-                .data$batch == .env$batch &
-                .data$group == .env$group &
-                .data$type == .env$type &
-                .data$ann_name == .env$ann_name)$enrich[[1]]
-            v_tables[[sheet_name]][["cluster"]] <-
-              private$clusters[v_tables[[sheet_name]][["term"]]]
-            v_tables[[sheet_name]] <- v_tables[[sheet_name]][,
-                c("term",
-                "name",
-                "cluster",
-                "pval",
-                "qval_bonferroni",
-                "qval_bh",
-                "type",
-                "parents",
-                "GI",
-                "NGI",
-                "Ngenes",
-                "pmin")]
-            v_tables[[sheet_name]][["parents"]] <- purrr::map_chr(
-              v_tables[[sheet_name]][["parents"]],
-              function(x) paste(x, collapse = ";"))
-            if (! is.null(id2name)) {
-              v_tables[[sheet_name]][["tGI"]] <- purrr::map_chr(
-                v_tables[[sheet_name]][["GI"]],
-                function(x) paste(na.omit(id2name[x]), collapse = ";"))
+          d_input_batch_group <- d_input_batch[group == group_var]
+          # Iterate over each combination of type and ann_name
+          for (i in seq_len(nrow(d_input_batch_group))) {
+            type_var <- d_input_batch_group$type[i]
+            ann_name_var <- d_input_batch_group$ann_name[i]
+            sheet_name <- paste(type_var, ann_name_var, sep = "_")
+
+            # Filter results for the current combination
+            res_filtered <- results[
+              batch == batch_var &
+                group == group_var &
+                type == type_var &
+                ann_name == ann_name_var
+            ]
+
+            # Get the enrichment data.table
+            enrich_dt <- res_filtered$enrich[[1]]
+
+            # Add cluster information
+            enrich_dt[, cluster := private$clusters[term]]
+
+            # Subset and reorder columns
+            enrich_dt <- enrich_dt[, .(
+              term,
+              name,
+              cluster,
+              pval,
+              qval_bonferroni,
+              qval_bh,
+              type,
+              parents,
+              GI,
+              NGI,
+              Ngenes,
+              pmin
+            )]
+
+            # Convert list columns to character strings
+            enrich_dt[, parents := sapply(parents, function(x) paste(x, collapse = ";"))]
+            enrich_dt[, GI := sapply(GI, function(x) paste(x, collapse = ";"))]
+
+            # If id2name is provided, create a new column with translated gene IDs
+            if (!is.null(id2name)) {
+              enrich_dt[, (new_name_label) := sapply(GI, function(x) paste(na.omit(id2name[x]), collapse = ";"))]
             }
-            v_tables[[sheet_name]]
-            v_tables[[sheet_name]][["GI"]] <- purrr::map_chr(
-              v_tables[[sheet_name]][["GI"]],
-              function(x) paste(x, collapse = ";"))
-            names(v_tables[[sheet_name]]) <- new_names
-            class(v_tables[[sheet_name]][["P value"]]) <- "scientific"
-            class(v_tables[[sheet_name]][["Q value (Bonferroni)"]]) <-
-              "scientific"
-            class(v_tables[[sheet_name]][["Q value (Benj. Hoch.)"]]) <-
-              "scientific"
-            class(v_tables[[sheet_name]][["Lowest p value possible"]]) <-
-              "scientific"
+
+            # Rename columns
+            setnames(enrich_dt, old = names(enrich_dt), new = new_names)
+
+            # Set columns to scientific format
+            enrich_dt[, `P value` := structure(`P value`, class = "scientific")]
+            enrich_dt[, `Q value (Bonferroni)` := structure(`Q value (Bonferroni)`, class = "scientific")]
+            enrich_dt[, `Q value (Benj. Hoch.)` := structure(`Q value (Benj. Hoch.)`, class = "scientific")]
+            enrich_dt[, `Lowest p value possible` := structure(`Lowest p value possible`, class = "scientific")]
+
+            # Add the processed data.table to the list of tables
+            v_tables[[sheet_name]] <- enrich_dt
           }
+
+          # Write the Excel file for the current batch and group
           options(openxlsx.numFmt = "#,#0.00")
-          openxlsx::write.xlsx(v_tables,
-            paste(
-              output_folder,
-              paste(batch, group, "fctBio.xlsx", sep = "_"),
-              sep = "/"
-            ),
-            asTable = TRUE, tableStyle = "TableStyleLight1")
+          openxlsx::write.xlsx(
+            v_tables,
+            file = file.path(output_folder, paste(batch_var, group_var, "fctBio.xlsx", sep = "_")),
+            asTable = TRUE, tableStyle = "TableStyleLight1"
+          )
         }
       }
+
+      # Write the cluster summary if requested
       if (write_cluster_summary) {
-        scl_table <- self$build_cluster_summary_table(verbose = TRUE,
-          p_type = p_type)
-        for (qname in names(scl_table)[6:ncol(scl_table)]) {
-            class(scl_table[[qname]]) <- "scientific"
-        }
+        scl_table <- self$build_cluster_summary_table(verbose = TRUE, p_type = p_type)
+
+        # Set numerical columns to scientific format
+        num_cols <- names(scl_table)[6:ncol(scl_table)]
+        scl_table[, (num_cols) := lapply(.SD, function(x) structure(x, class = "scientific")), .SDcols = num_cols]
+
         options(openxlsx.numFmt = "#,#0.00")
         openxlsx::write.xlsx(
           list(
             Summary = scl_table,
-            Occurences = self$count_gene_per_cluster(id2name = id2name,
-              new_name_label = new_name_label, verbose = TRUE)
+            Occurrences = self$count_gene_per_cluster(id2name = id2name, new_name_label = new_name_label, verbose = TRUE)
           ),
-          paste(
-              output_folder,
-              "cluster_summary_fctBio.xlsx",
-              sep = "/"
-            ),
+          file = file.path(output_folder, "cluster_summary_fctBio.xlsx"),
           asTable = TRUE, tableStyle = "TableStyleLight1"
         )
       }
