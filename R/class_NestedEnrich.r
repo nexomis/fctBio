@@ -1474,9 +1474,9 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
                 gene = unique(unlist(dt$gene_input))
               )
             }
-          ), fill = TRUE))
+          ), fill = TRUE)
         }
-      ), fill = TRUE))
+      ), fill = TRUE)
 
       dt_intra_x_term <- dt_gene_x_cluster_x_term[,
         .(intra_x_term = data.table::uniqueN(term)), by = .(gene, cluster)]
