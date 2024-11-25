@@ -126,11 +126,11 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #' Compute and draw euleur plot based on significant DEG table
 #' Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
 #'
-#' @param deg_table Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.
+#' @param deg_table_in Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.
 #' @param to_keep (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.
 #' @param min_to_displayed_threshold (default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).
-#' @param ext_groups (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no external set. Used for inter AND intra batche comparison. For now: ignore other parameters ("type', 'lfc', 'pval') TODO!!!
-#' @param mode_ext_groups (default: 'union') Must be 'individual', 'union' or 'intersect'.
+#' @param ext_groups (default: NULL) list of uniprot ids used as ext_group (list or vector). If table (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_table_in'. If 'NULL', no external set. Used for inter AND intra batche comparison. For now: ignore other parameters ("type', 'lfc', 'pval').
+#' @param mode_ext_groups (default: 'union') Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.
 #' @param inter_batch (default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'.
 #' @param mode_inter_batch (default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.
 #' @param shape (default: 'ellipse') euler diagram shape.
@@ -196,26 +196,33 @@ compute_euler_plot <- function(deg_table_in,
   
   # create exterrnal sets (TODO include pval fc and type on ext_group design ?)
   if (!is.null(ext_groups)){
-    ext_deg_table <- deg_table[ext_groups, on = .(batch, group)]
-    # check missing values
-    missing_rows <- ext_deg_table[is.na(type)]
-    if (nrow(missing_rows) > 0) {
-      warning("WARN: Some 'ext_groups' values were not found in 'deg_table' (not included in 'ext_groups').")
-      print(missing_rows[, .(batch, group)])
-    }
-    if (mode_ext_groups == "individual") {
-      ext_sets <- lapply(ext_deg_table$uniprot, function(uniprot_ids) {
-        unique(na.omit(unlist(uniprot_ids)))
-      })
-      names(ext_sets) <- paste("EXT", ext_deg_table$batch, ext_deg_table$group, sep=":")
-    } else if (mode_ext_groups == "union") {
-      ext_sets <- list(unique(na.omit(unlist(ext_deg_table$uniprot))))
-      names(ext_sets) <- "EXT:union"
-    } else if (mode_ext_groups == "intersect") {
-      ext_sets <- list(as.character(na.omit(Reduce(intersect, ext_deg_table$uniprot))))
-      names(ext_sets) <- "EXT:intersect"
+    if (is.data.table(ext_groups) || is.data.frame(ext_groups)) {
+        ext_deg_table <- deg_table[ext_groups, on = .(batch, group)]
+        # check missing values
+        missing_rows <- ext_deg_table[is.na(type)]
+        if (nrow(missing_rows) > 0) {
+        warning("WARN: Some 'ext_groups' values were not found in 'deg_table' (not included in 'ext_groups').")
+        print(missing_rows[, .(batch, group)])
+        }
+        if (mode_ext_groups == "individual") {
+        ext_sets <- lapply(ext_deg_table$uniprot, function(uniprot_ids) {
+            unique(na.omit(unlist(uniprot_ids)))
+        })
+        names(ext_sets) <- paste("EXT", ext_deg_table$batch, ext_deg_table$group, sep=":")
+        } else if (mode_ext_groups == "union") {
+        ext_sets <- list(unique(na.omit(unlist(ext_deg_table$uniprot))))
+        names(ext_sets) <- "EXT:union"
+        } else if (mode_ext_groups == "intersect") {
+        ext_sets <- list(as.character(na.omit(Reduce(intersect, ext_deg_table$uniprot))))
+        names(ext_sets) <- "EXT:intersect"
+        } else {
+        stop("Error: unknown value for 'mode_ext_groups': '", mode_ext_groups, "'")
+        }
+    } else if (is.list(ext_groups) || is.vector(ext_groups)) {
+        ext_sets <- list(unique(unlist(ext_groups)))
+        names(ext_sets) <- "EXT_LIST"
     } else {
-      stop("Error: unknown value for 'mode_ext_groups': '", mode_ext_groups, "'")
+        stop("'ext_groups' must be a data.table, data.frame, list, or vector.")
     }
   } else {
     ext_sets = NULL
