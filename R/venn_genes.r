@@ -4,6 +4,7 @@
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 
 
+
 ## Define function
 
 #' Draw simple and single euler plot about a named list of sets
@@ -125,18 +126,31 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #' Compute and draw euleur plot based on significant DEG table
 #'
 #'
-#' @param deg_table Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`.
-#' @param to_keep (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data.
+#' @param deg_table Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !)
+#' @param to_keep (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.
 #' @param min_to_displayed_threshold (default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).
+#' @param ext_groups (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no external set. Used for inter AND intra batche comparison. For now: ignore other parameters ("type', 'lfc', 'pval') TODO!!!
 #' @param mode_ext_groups (default: 'union') Must be 'individual', 'union' or 'intersect'.
-#' @param ext_groups (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no external set.
-#' @param mode_inter_batch (default: NULL) 'union' or 'intersect'. If 'NULL', no Inter-batch euler diagram. Perform inter-batch euler diagram at level of batches: all internal groups are summarized following choosen method.
+#' @param inter_batch (default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'.
+#' @param mode_inter_batch (default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.
 #' @param shape (default: 'ellipse') euler diagram shape.
 #' @param path_dir_to_save_plot (default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.
 #' 
 #' @return This function return a list of plots.
 #' 
 #' @details Comparison is performed using uniprot ids.
+#' TODO:
+#'    - add arning to signal unsed group in several case : intesect null when inter-batch, no hit on specific threshold of to_keep, ext_group_dt or inter_batch !!!!
+#'    - ext_groups:
+#'       - add possibility to put specific gene list as vector
+#'       - add option to use ext group at inter AND/OR intra batche comparison
+#'    - put as input uniprot_to_symbol and use it to build final_deg
+#'    - remove posibility to write results table on xlsx (because too many splitted now ! fct is not called only one times so multiple files are created !)
+#'    - plot: 
+#'       - put all venn diagram on same pdf using output/append on new page option !
+#'       - manage tittle parameters
+#'    
+#' 
 #' @examples
 #' Example usage
 #' compute_euler_plot(deg_table = data.table(deseq_pred$cross_args_and_generate_lists(
@@ -150,12 +164,12 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 compute_euler_plot <- function(deg_table_in,
                                min_to_displayed_threshold = 0.01,
                                to_keep = NULL,
-                               mode_ext_groups = "union",
                                ext_groups = NULL,
-                               mode_inter_batch = "union",
+                               mode_ext_groups = "union",
+                               inter_batch = NULL,
+                               mode_inter_batch = NULL,
                                shape = "ellipse",
-                               path_dir_to_save_plot = NULL,
-                               path_xlsx_file_to_save_table = NULL) {
+                               path_dir_to_save_plot = NULL) {
   
   # prevent modification of input tables
   deg_table <- copy(deg_table_in)
@@ -164,7 +178,7 @@ compute_euler_plot <- function(deg_table_in,
   deg_table[, uniprot := lapply(data, function(x) {x$uniprot})]
   deg_table[, data := NULL]
   
-  # create exterrnal sets
+  # create exterrnal sets : TODO include pval fc and type on ext_group design !
   if (!is.null(ext_groups)){
     ext_deg_table <- deg_table[ext_groups, on = .(batch, group)]
     if (mode_ext_groups == "individual") {
@@ -190,80 +204,144 @@ compute_euler_plot <- function(deg_table_in,
     deg_table <- deg_table[to_keep, on = .(batch, group)]
   }
   
-  if (!dir.exists(path_dir_to_save_plot)) {
+  if (!is.null(path_dir_to_save_plot) && !dir.exists(path_dir_to_save_plot)) {
     dir.create(path_dir_to_save_plot)
   }
   
-  sets_list <- list()
   euler_plots <- list()
+  list_new_rows_dt_region_content <- list()
+
+  ### Intra-batch
+  list_deg_table <- split(deg_table, by = c("batch", "lfc_abs_lim", "min_signif", "type"))
   
-  ### Inter-batch
-  list_batches <- unique(deg_table$batch)
-  for (batch_i in list_batches) {
-    dt_batch <- deg_table[batch == batch_i]
-    
-    sets <- lapply(dt_batch$uniprot, function(uniprot_ids) {
+  for (deg_dt_name in names(list_deg_table)) {
+    deg_dt_i <- list_deg_table[[deg_dt_name]]
+    sets <- lapply(deg_dt_i$uniprot, function(uniprot_ids) {
       as.character(na.omit(unlist(uniprot_ids)))
     })
-    names(sets) <- dt_batch$group 
+    names(sets) <- deg_dt_i$group 
     
     sets <- c(sets, ext_sets)
     
     path_file = if(!is.null(path_dir_to_save_plot)) {
-      paste0(path_dir_to_save_plot, "/", batch_i, ".pdf")
+      paste0(path_dir_to_save_plot, "/", deg_dt_name, ".pdf")
       } else NULL
     euler_diagram <- draw_single_euler_plot(sets,
                                             min_to_displayed_threshold,
-                                            title = paste0(batch_i, " | "),
+                                            title = paste0(deg_dt_name, " | "),
                                             shape = shape,
                                             save_path_file = path_file)
-  
-    euler_plots[[batch_i]] <- euler_diagram
-    sets_list[[batch_i]] <- sets
+
+    euler_plots[[deg_dt_name]] <- euler_diagram
+    
+    regions_content <- extract_venn_zones_content(sets)
+    
+    # formatting of set list results from ???xxx??? to initial ???deg_table??? format (temporarily saved on a list)
+    lfc_abs_lim = deg_dt_i$lfc_abs_lim[1]
+    min_signif = deg_dt_i$min_signif[1]
+    type = deg_dt_i$type[1]
+    batch = deg_dt_i$batch[1]  # better than "deg_dt_name" (e.g: 'Batch1.0.5849625.0.05.deregulated')
+    for (region_name in names(regions_content$specific_intersect)) {
+      region_content <- regions_content$specific_intersect[[region_name]]
+      new_row <- list(batch = paste0("_dcmp.", batch),
+                      group = paste0("_sp.", region_name),
+                      lfc_abs_lim = lfc_abs_lim,
+                      min_signif = min_signif,
+                      type = type,
+                      data = list(data.table(symbol = rep(NA, length(region_content)),
+                                             uniprot = region_content))
+                      )
+      list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
+                                                list(new_row))
+    }                      
   }
   
-  ### Intra-batch: global
+  ### Inter-batch
+  if (is.null(inter_batch)) {
+    inter_batch_is_initially_null = TRUE
+  } else {
+    inter_batch_is_initially_null = FALSE
+  }
+  list_deg_table <- split(deg_table, by = c("lfc_abs_lim", "min_signif", "type"))
+  
   if (!is.null(mode_inter_batch)) {
-    if (mode_inter_batch == "union") {
-      batch_deg_table <- rbindlist(lapply(unique(deg_table$batch), function(x) {
-        dt <- deg_table[batch == x]
-        data.table(
-          batch = x,
-          uniprot = list(as.character(na.omit(unique(unlist(dt$uniprot)))))
-        )
-      }))
-    } else if (mode_inter_batch == "intersect") {
-      batch_deg_table <- rbindlist(lapply(unique(deg_table$batch), function(x) {
-        dt <- deg_table[batch == x]
-        data.table(
-          batch = x,
-          uniprot = list(as.character(na.omit(Reduce(intersect, dt$uniprot))))
-        )
-      }))
-    } else {
-      stop("Error: unknown value for 'mode_inter_batch': '", mode_inter_batch, "'")
+    # for each threshold in deg_table
+    for (deg_dt_name in names(list_deg_table)) {
+      deg_dt_i <- list_deg_table[[deg_dt_name]]
+      # if not list batch to include on comparison, include all available batches
+      if (inter_batch_is_initially_null) {
+        inter_batch <- list(rep(unique(deg_dt_i$batch),
+                                n=length(mode_inter_batch)))
+        names(inter_batch) <- names(mode_inter_batch)
+      }
+      # for each recquested inter-batch
+      for (inter_b_comp_names in names(mode_inter_batch)) {
+        deg_dt_i_batch_selected <- deg_dt_i[batch %in% inter_batch[[inter_b_comp_names]] ]
+        # flatten uniprot list by batch (union or interesect)
+        if (mode_inter_batch[[inter_b_comp_names]] == "union") {
+          deg_dt_i_batch_selected_flattened <- rbindlist(lapply(
+            unique(deg_dt_i_batch_selected$batch), function(x) {
+              dt <- deg_dt_i_batch_selected[batch == x]
+              data.table(
+                batch = x,
+                uniprot = list(as.character(na.omit(unique(unlist(dt$uniprot)))))
+            )
+          }))
+        } else if (mode_inter_batch[[inter_b_comp_names]] == "intersect") {
+          deg_dt_i_batch_selected_flattened <- rbindlist(lapply(
+            unique(deg_dt_i_batch_selected$batch), function(x) {
+              dt <- deg_dt_i_batch_selected[batch == x]
+              data.table(
+                batch = x,
+                uniprot = list(as.character(na.omit(Reduce(intersect, dt$uniprot))))
+            )
+          }))
+        } else {
+          stop("Error: unknown value for specific element in 'mode_inter_batch': '", mode_inter_batch[[inter_b_comp_names]], "'")
+        }
+        sets = deg_dt_i_batch_selected_flattened$uniprot
+        names(sets) <- unique(deg_dt_i_batch_selected$batch)
+        sets <- c(sets, ext_sets)
+        
+        # euler_plot
+        path_file = if(!is.null(path_dir_to_save_plot)) {
+          paste0(path_dir_to_save_plot, "/Intra-batch_", inter_b_comp_names,".pdf")
+        } else NULL
+        euler_diagram <- draw_single_euler_plot(sets, min_to_displayed_threshold,
+                                                title = paste0("Intra-batch | ", inter_b_comp_names, " | ", deg_dt_name),
+                                                save_path_file = path_file)
+        euler_plots[[paste0("Intra-batch_", inter_b_comp_names, "_", deg_dt_name)]] <- euler_diagram
+        # content by region
+        regions_content <- extract_venn_zones_content(sets)
+        # formatting of set list results from ???xxx??? to initial ???deg_table??? format
+        lfc_abs_lim = deg_dt_i$lfc_abs_lim[1]
+        min_signif = deg_dt_i$min_signif[1]
+        type = deg_dt_i$type[1]
+        batch = inter_b_comp_names  # better than "paste0(deg_dt_name, ":", mode_inter_batch[[inter_b_comp_names]])" (e.g: 'Batch1.0.5849625.0.05.deregulated:union')
+        for (region_name in names(regions_content$specific_intersect)) {
+          region_content <- regions_content$specific_intersect[[region_name]]
+          new_row <- list(batch = paste0("_dcmp.", batch),
+                          group = paste0("_sp.", region_name),
+                          lfc_abs_lim = lfc_abs_lim,
+                          min_signif = min_signif,
+                          type = type,
+                          data = list(data.table(symbol = rep(NA, length(region_content)),
+                                                 uniprot = region_content))
+          )
+          list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
+                                                    list(new_row))
+        }                      
+      }      
     }
-    sets = batch_deg_table$uniprot
-    names(sets) <- batch_deg_table$batch
-    sets <- c(sets, ext_sets)
-    
-    path_file = if(!is.null(path_dir_to_save_plot)) {
-      paste0(path_dir_to_save_plot, "/Intra-batch.pdf")
-      } else NULL
-    euler_diagram <- draw_single_euler_plot(sets, min_to_displayed_threshold,
-                                     title = paste0("Intra-batch", " | "),
-                                     save_path_file = path_file)
-    
-    euler_plots[["Intra-batch"]] <- euler_diagram
-    sets_list[["Intra-batch"]] <- sets
     
   }
-  
-  ### save specific content of each region on xlsx file
-  dt_all_regions_content <- extract_venn_zones_content(sets_list,
-                                                       path_xlsx_file_to_save_table)
+
+  dt_region_content <- rbindlist(list_new_rows_dt_region_content,
+                                 use.names = TRUE,
+                                 fill = FALSE)
   
   return(list(euler_plots = euler_plots,
-              dt_all_regions_content = dt_all_regions_content))
+              dt_region_content = dt_region_content))
 }
+
 
