@@ -124,9 +124,9 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 
 
 #' Compute and draw euleur plot based on significant DEG table
+#' Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
 #'
-#'
-#' @param deg_table Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !)
+#' @param deg_table Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.
 #' @param to_keep (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.
 #' @param min_to_displayed_threshold (default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).
 #' @param ext_groups (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no external set. Used for inter AND intra batche comparison. For now: ignore other parameters ("type', 'lfc', 'pval') TODO!!!
@@ -135,24 +135,23 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #' @param mode_inter_batch (default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.
 #' @param shape (default: 'ellipse') euler diagram shape.
 #' @param path_dir_to_save_plot (default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.
+#' @param dict_uniprot_to_symbol (default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result. If NULL, reconstructed from input table. 
 #' 
 #' @return This function return a list of plots.
 #' 
 #' @details Comparison is performed using uniprot ids.
 #' TODO:
-#'    - add arning to signal unsed group in several case : intesect null when inter-batch, no hit on specific threshold of to_keep, ext_group_dt or inter_batch !!!!
 #'    - ext_groups:
 #'       - add possibility to put specific gene list as vector
-#'       - add option to use ext group at inter AND/OR intra batche comparison
-#'    - put as input uniprot_to_symbol and use it to build final_deg
-#'    - remove posibility to write results table on xlsx (because too many splitted now ! fct is not called only one times so multiple files are created !)
+#'       - add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
 #'    - plot: 
 #'       - put all venn diagram on same pdf using output/append on new page option !
 #'       - manage tittle parameters
-#'    
+#'    - reduce time running: don't perform independantly euleurr plot ! use already computed intersection to put stats to eulleur diagram
 #' 
 #' @examples
 #' Example usage
+#' 
 #' compute_euler_plot(deg_table = data.table(deseq_pred$cross_args_and_generate_lists(
 #'                                             cross_type = c("deregulated"),
 #'                                             cross_lfc_abs_lim = c(LFC_threshold),
@@ -169,18 +168,41 @@ compute_euler_plot <- function(deg_table_in,
                                inter_batch = NULL,
                                mode_inter_batch = NULL,
                                shape = "ellipse",
-                               path_dir_to_save_plot = NULL) {
+                               path_dir_to_save_plot = NULL,
+                               dict_uniprot_to_symbol = NULL) {
   
   # prevent modification of input tables
   deg_table <- copy(deg_table_in)
+  
+  # build 'dict_uniprot_to_symbol' if null
+  if (is.null(dict_uniprot_to_symbol)) {
+    dict_uniprot_to_symbol <- unique(rbindlist(deg_table_test$data))
+    # sort only to ensure reproducibility in the case of nonunique uniprot/symbol combinations
+    setorder(dict_uniprot_to_symbol)
+    dict_uniprot_to_symbol <- setNames(dict_uniprot_to_symbol$symbol,
+                                       dict_uniprot_to_symbol$uniprot)
+  }
+  # warning if nonunique uniprot/symbol combinations
+  dup_uniprots <- dict_uniprot_to_symbol[duplicated(names(dict_uniprot_to_symbol))]
+  if (length(dup_uniprots) > 0) {
+    warning("WARN: some uniprot ids are associated with different symbol ids: '",
+            dup_uniprots,
+            "'. Association of symbol id will be based only on the first.")
+  }
   
   # extract uniprot ids
   deg_table[, uniprot := lapply(data, function(x) {x$uniprot})]
   deg_table[, data := NULL]
   
-  # create exterrnal sets : TODO include pval fc and type on ext_group design !
+  # create exterrnal sets (TODO include pval fc and type on ext_group design ?)
   if (!is.null(ext_groups)){
     ext_deg_table <- deg_table[ext_groups, on = .(batch, group)]
+    # check missing values
+    missing_rows <- ext_deg_table[is.na(type)]
+    if (nrow(missing_rows) > 0) {
+      warning("WARN: Some 'ext_groups' values were not found in 'deg_table' (not included in 'ext_groups').")
+      print(missing_rows[, .(batch, group)])
+    }
     if (mode_ext_groups == "individual") {
       ext_sets <- lapply(ext_deg_table$uniprot, function(uniprot_ids) {
         unique(na.omit(unlist(uniprot_ids)))
@@ -202,6 +224,12 @@ compute_euler_plot <- function(deg_table_in,
   # filter batchs/groups
   if (!is.null(to_keep)) {
     deg_table <- deg_table[to_keep, on = .(batch, group)]
+    # check missing values
+    missing_rows <- deg_table[is.na(type)]
+    if (nrow(missing_rows) > 0) {
+      warning("WARN: Some 'to_keep' values were not found in 'deg_table' (not included in 'to_keep').")
+      print(missing_rows[, .(batch, group)])
+    }
   }
   
   if (!is.null(path_dir_to_save_plot) && !dir.exists(path_dir_to_save_plot)) {
@@ -236,7 +264,7 @@ compute_euler_plot <- function(deg_table_in,
     
     regions_content <- extract_venn_zones_content(sets)
     
-    # formatting of set list results from ???xxx??? to initial ???deg_table??? format (temporarily saved on a list)
+    # formatting of set list results from “xxx” to initial “deg_table” format (temporarily saved on a list)
     lfc_abs_lim = deg_dt_i$lfc_abs_lim[1]
     min_signif = deg_dt_i$min_signif[1]
     type = deg_dt_i$type[1]
@@ -248,12 +276,12 @@ compute_euler_plot <- function(deg_table_in,
                       lfc_abs_lim = lfc_abs_lim,
                       min_signif = min_signif,
                       type = type,
-                      data = list(data.table(symbol = rep(NA, length(region_content)),
+                      data = list(data.table(dict_uniprot_to_symbol[region_content],
                                              uniprot = region_content))
                       )
       list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
                                                 list(new_row))
-    }                      
+    }
   }
   
   ### Inter-batch
@@ -313,7 +341,7 @@ compute_euler_plot <- function(deg_table_in,
         euler_plots[[paste0("Intra-batch_", inter_b_comp_names, "_", deg_dt_name)]] <- euler_diagram
         # content by region
         regions_content <- extract_venn_zones_content(sets)
-        # formatting of set list results from ???xxx??? to initial ???deg_table??? format
+        # formatting of set list results from “xxx” to initial “deg_table” format
         lfc_abs_lim = deg_dt_i$lfc_abs_lim[1]
         min_signif = deg_dt_i$min_signif[1]
         type = deg_dt_i$type[1]
@@ -325,7 +353,7 @@ compute_euler_plot <- function(deg_table_in,
                           lfc_abs_lim = lfc_abs_lim,
                           min_signif = min_signif,
                           type = type,
-                          data = list(data.table(symbol = rep(NA, length(region_content)),
+                          data = list(data.table(symbol = dict_uniprot_to_symbol[region_content],
                                                  uniprot = region_content))
           )
           list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
@@ -343,5 +371,6 @@ compute_euler_plot <- function(deg_table_in,
   return(list(euler_plots = euler_plots,
               dt_region_content = dt_region_content))
 }
+
 
 
