@@ -60,3 +60,80 @@ test_that("extend_network_trrust function tests", {
   expect_identical(extended_genes, results)
 
 })
+
+######## venn_genes ########
+
+# Function to test 'compute_euler_plot' following several context using fodler containing input obect (deg_table, ext_groups, to_keep and uniprot_to_symbol), output object and arguments used to generate it.
+test_compute_euler_plot_from_dir <- function(test_dir) {
+  # load input object and arguments
+  deg_table_test <- readRDS(file.path(test_dir, "deg_table_input.rds"))
+  ext_groups <- readRDS(file.path(test_dir, "ext_groups_input.rds"))
+  execution_args <- readRDS(file.path(test_dir, "execution_args.rds"))
+  
+  # load reference results
+  ref_dt_region_content <- readRDS(file.path(test_dir, "result_dt_output.rds"))
+  ref_euler_plot <- readRDS(file.path(test_dir, "result_plot_output.rds"))
+  
+  # execution of 'compute_euler_plot()'
+  res <- do.call(compute_euler_plot, execution_args))
+  res_ <- res$dt_region_content
+
+  ##### Test of 'dt_region_content' resuls #####
+  test_that(paste("Region content structure ('dt_region_content') for ", test_dir), {
+    # check structure
+    expect_identical(names(res$dt_region_content), names(ref_dt_region_content),
+                info = paste("Column names are different on '$dt_region_content' of ", test_dir))
+    expect_identical(sapply(res$dt_region_content, class), sapply(ref_dt_region_content, class),
+                info = paste("Column type are different on '$dt_region_content' of ", test_dir))
+    
+    # check meta data of computed analysis
+    cols_no_data <- setdiff(names(res$dt_region_content), "data")
+    expect_identical(res$dt_region_content[, ..cols_no_data], ref_dt_region_content[, ..cols_no_data],
+                info = paste("List of comparisons (based on 'dt_region_content' rows) performed seems different in ", test_dir))
+
+    # check results of computed analyse
+    expect__identical(res$dt_region_content$data, ref_dt_region_content$data,
+                info = paste("Results (column data) of content on each reagion are different in ", test_dir))
+  })
+
+  ##### Test of 'euler_plot' results #####
+  test_that(paste("Plot structure ('euler_plot') for ", test_dir), {
+    # check structure
+    expect_identical(names(res$euler_plot), names(ref_euler_plot),
+                info = paste("Plots names are different on '$euler_plot' of ", test_dir))
+    expect_identical(sapply(res$euler_plot, class), sapply(ref_euler_plot, class),
+                info = paste("Plots type are different on '$euler_plot' of ", test_dir))
+    
+    # check results of computed analyse
+    expect_identical(res$euler_plot$original.values, ref_euler_plot$original.values,
+                info = paste("Value in 'original.values' are different for ", test_dir))
+    expect_identical(res$euler_plot$fitted.values, ref_euler_plot$fitted.values,
+                info = paste("Value in 'fitted.values' are different for ", test_dir))
+    expect_identical(res$euler_plot$quantities$labels, ref_euler_plot$quantities$labels,
+                info = paste("Value in 'quantities$labels' are different for ", test_dir))
+  })
+  
+  ##### Complete object comparison #####
+  test_that(paste("Complete (substance and format) results object comparison for ", test_dir), {
+    # dt_region_content
+    if (!identical(res$dt_region_content, ref_dt_region_content)) {
+      warning(paste("Object results from 'dt_region_content' show differences in ", test_dir, 
+                    ". This could concern only the form of the data, to be verified."))
+    }
+    
+    # euler_plot
+    if (!identical(res$euler_plot, ref_euler_plot)) {
+      warning(paste("LObject results from 'euler_plot' show differences in ", test_dir, 
+                    ". This could concern only the form of the data, to be verified."))
+    }
+  })
+  ##### Test of results files (.pdf and .xlsx ?!? #####
+}
+
+# Run tests for all subfolders in the 'test_compute_euler_resources' directory
+main_test_dir = "tests/testthat/data_for_venn_test/"
+test_dirs <- list.dirs(main_test_dir, full.names = TRUE, recursive = FALSE)
+for (test_dir in test_dirs) {
+  cat("\n", "Testing folder:", test_dir, "\n")
+  test_compute_euler_plot_from_dir(test_dir)
+}

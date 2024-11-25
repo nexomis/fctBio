@@ -176,7 +176,7 @@ compute_euler_plot <- function(deg_table_in,
   
   # build 'dict_uniprot_to_symbol' if null
   if (is.null(dict_uniprot_to_symbol)) {
-    dict_uniprot_to_symbol <- unique(rbindlist(deg_table_test$data))
+    dict_uniprot_to_symbol <- unique(rbindlist(deg_table$data))
     # sort only to ensure reproducibility in the case of nonunique uniprot/symbol combinations
     setorder(dict_uniprot_to_symbol)
     dict_uniprot_to_symbol <- setNames(dict_uniprot_to_symbol$symbol,
