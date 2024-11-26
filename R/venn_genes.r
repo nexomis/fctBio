@@ -1,13 +1,15 @@
 #' @import data.table
 #' @import ggplot2
 #' @importFrom eulerr euler
-#' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
+#' @import openxlsx
 
-
+NULL
 
 ## Define function
+  
 
 #' Draw simple and single euler plot about a named list of sets
+#' 
 #' @param min_to_displayed_threshold Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy)).
 draw_single_euler_plot <- function (sets,
                                     min_to_displayed_threshold = 0.01,
@@ -141,6 +143,9 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #' 
 #' @details Comparison is performed using uniprot ids.
 #' TODO:
+#'    - in option management of up/down. Although this is already possible in the current state of development by transforming deg_table upstream, it would be a good idea to add the following 2 options)
+#'       - summarize analyse: merge up and down on single analyse (after prefixing genes by their status "up_"/"down_")
+#'       - very interesting analyse: venn with up and down in same plot on disctinct sets to highlight swtched genes !
 #'    - ext_groups:
 #'       - add possibility to put specific gene list as vector
 #'       - add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
