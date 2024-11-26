@@ -2,8 +2,7 @@
 % Please edit documentation in R/venn_genes.r
 \name{compute_euler_plot}
 \alias{compute_euler_plot}
-\title{Compute and draw euleur plot based on significant DEG table
-Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)}
+\title{Compute and draw euleur plot based on significant DEG table}
 \usage{
 compute_euler_plot(
   deg_table_in,
@@ -43,7 +42,6 @@ compute_euler_plot(
 This function return a list of plots.
 }
 \description{
-Compute and draw euleur plot based on significant DEG table
 Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
 }
 \details{

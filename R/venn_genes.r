@@ -1,12 +1,5 @@
-#' @import data.table
-#' @import ggplot2
-#' @importFrom eulerr euler
-#' @import openxlsx
-
-NULL
 
 ## Define function
-  
 
 #' Draw simple and single euler plot about a named list of sets
 #' 
@@ -17,7 +10,7 @@ draw_single_euler_plot <- function (sets,
                                     title = NULL,
                                     save_path_file = NULL) {
   
-  euler_data <- euler(sets, shape = shape)
+  euler_data <- eulerr::euler(sets, shape = shape)
   
   if (min_to_displayed_threshold < 1) {
     min_to_displayed <- round(length(unique(unlist(sets))) * min_to_displayed_threshold)
@@ -126,6 +119,7 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 
 
 #' Compute and draw euleur plot based on significant DEG table
+#'
 #' Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
 #'
 #' @param deg_table_in Recquired. dt with significant results: results of `deseq_pred$cross_args_and_generate_lists()`. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.
