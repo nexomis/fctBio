@@ -115,13 +115,13 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 }
 
 
-#' Get external group uniprot ids
-#' 
-#' @param deg_dt Recquired. dt with significant results: results of `data.table(deseq_pred$cross_args_and_generate_lists())`.
-#' @param ext_groups_dt Recquired. (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_dt'.
-#' @param mode_ext_groups Recquired. Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.
-#' @param deg_dt_name name of 'deg_dt' used only to precise potential warning
-#' 
+# Get external group uniprot ids
+# 
+# @param deg_dt Recquired. dt with significant results: results of `data.table(deseq_pred$cross_args_and_generate_lists())`.
+# @param ext_groups_dt Recquired. (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_dt'.
+# @param mode_ext_groups Recquired. Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.
+# @param deg_dt_name name of 'deg_dt' used only to precise potential warning
+# 
 get_ext_group <- function(deg_dt,
                           ext_groups_dt,
                           mode_ext_groups,

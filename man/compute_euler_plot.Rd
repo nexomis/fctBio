@@ -18,13 +18,13 @@ compute_euler_plot(
 )
 }
 \arguments{
-\item{deg_table_in}{Recquired. dt with significant results: results of \code{deseq_pred$cross_args_and_generate_lists()}. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.}
+\item{deg_table_in}{Recquired. dt with significant results: results of \code{data.table(deseq_pred$cross_args_and_generate_lists())}. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.}
 
 \item{min_to_displayed_threshold}{(default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).}
 
 \item{to_keep}{(default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.}
 
-\item{ext_groups}{(default: NULL) list of uniprot ids used as ext_group (list or vector). If table (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_table_in'. If 'NULL', no external set. Used for inter AND intra batche comparison. For now: ignore other parameters ("type', 'lfc', 'pval').}
+\item{ext_groups}{(default: NULL) list of uniprot ids used as ext_group (list or vector). If table (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_table_in' (before filtering using 'to_keep' and considering appropriate 'type', 'lfc' and 'pval'). If 'NULL', no external set. Used for inter AND intra batche comparison.}
 
 \item{mode_ext_groups}{(default: 'union') Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.}
 
@@ -36,16 +36,17 @@ compute_euler_plot(
 
 \item{path_dir_to_save_plot}{(default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.}
 
-\item{dict_uniprot_to_symbol}{(default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result. If NULL, reconstructed from input table.}
+\item{dict_uniprot_to_symbol}{(default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result if 'symbol' column is already present in 'deg_table_in' input (if 'symbol column not in input table, this parameters will be ignored). If NULL, reconstructed from input table.}
 }
 \value{
-This function return a list of plots.
+This function return as first element a list of eullerr plots object ('$euler_plot') and as second element a data.table with specific content of each region on format of 'deg_table_in' ('$dt_region_content').
 }
 \description{
 Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
 }
 \details{
 Comparison is performed using uniprot ids.
+
 TODO:
 \itemize{
 \item in option management of up/down. Although this is already possible in the current state of development by transforming deg_table upstream, it would be a good idea to add the following 2 options)
@@ -55,7 +56,7 @@ TODO:
 }
 \item ext_groups:
 \itemize{
-\item add possibility to put specific gene list as vector
+\item add possibility to put mutliple specific gene list as vector (with mode: union, individual, intersect)
 \item add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
 }
 \item plot:
