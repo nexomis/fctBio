@@ -1,9 +1,9 @@
 
 ## Define function
 
-#' Draw simple and single euler plot about a named list of sets
-#' 
-#' @param min_to_displayed_threshold Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy)).
+# Draw simple and single euler plot about a named list of sets
+# 
+# @param min_to_displayed_threshold Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy)).
 draw_single_euler_plot <- function (sets,
                                     min_to_displayed_threshold = 0.01,
                                     shape = "ellipse",
@@ -41,24 +41,24 @@ draw_single_euler_plot <- function (sets,
 
 
 
-#' Extract specific content of each zone of a Venn/Euler diagram
-#'
-#' @param sets_list A named list of sets or a list of named lists of sets. Each list will be processed independently.
-#' @param path_xlsx_file_to_save_table File path to save results in an Excel file (default: NULL). If not NULL, creates one sheet per set.
-#' 
-#' @return A named list of results for each input set or list of sets. Each result contains specific content of each zone.
-#'
-#' @examples
-#' set123 <- list("111" = c("12345", "23456", "34567"),
-#'                "222" = c("23456", "45678"),
-#'                "333" = c("12345", "45678", "56789"))
-#' setABC <- list("AAA" = c("ABCDE", "BCDEF", "DEFGH"),
-#'                "BBB" = c("BCDEF", "DEFGH"),
-#'                "CCC" = c("DEFGH", "EFGHI", "FGHIJ"))
-#' extract_venn_zones_content(list("123" = set123,
-#'                                 "ABC" = setABC),
-#'                            "test.xlsx")
-#'
+# Extract specific content of each zone of a Venn/Euler diagram
+#
+# @param sets_list A named list of sets or a list of named lists of sets. Each list will be processed independently.
+# @param path_xlsx_file_to_save_table File path to save results in an Excel file (default: NULL). If not NULL, creates one sheet per set.
+# 
+# @return A named list of results for each input set or list of sets. Each result contains specific content of each zone.
+#
+# @examples
+# set123 <- list("111" = c("12345", "23456", "34567"),
+#                "222" = c("23456", "45678"),
+#                "333" = c("12345", "45678", "56789"))
+# setABC <- list("AAA" = c("ABCDE", "BCDEF", "DEFGH"),
+#                "BBB" = c("BCDEF", "DEFGH"),
+#                "CCC" = c("DEFGH", "EFGHI", "FGHIJ"))
+# extract_venn_zones_content(list("123" = set123,
+#                                 "ABC" = setABC),
+#                            "test.xlsx")
+#
 extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table = NULL) {
   # if only one set as input, transfromr to list of set to simplify function
   if (!is.list(sets_list[[1]])) {
@@ -141,7 +141,7 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #'       - summarize analyse: merge up and down on single analyse (after prefixing genes by their status "up_"/"down_")
 #'       - very interesting analyse: venn with up and down in same plot on disctinct sets to highlight swtched genes !
 #'    - ext_groups:
-#'       - add possibility to put specific gene list as vector
+#'       - add possibility to put mutliple specific gene list as vector (with mode: union, individual, intersect)
 #'       - add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
 #'    - plot: 
 #'       - put all venn diagram on same pdf using output/append on new page option !
