@@ -131,11 +131,14 @@ extract_venn_zones_content <- function(sets_list, path_xlsx_file_to_save_table =
 #' @param mode_inter_batch (default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.
 #' @param shape (default: 'ellipse') euler diagram shape.
 #' @param path_dir_to_save_plot (default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.
-#' @param dict_uniprot_to_symbol (default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result. If NULL, reconstructed from input table. 
+#' @param dict_uniprot_to_symbol (default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result if 'symbol' column is already present in 'deg_table_in' input (if 'symbol column not in input table, this parameters will be ignored). If NULL, reconstructed from input table. 
 #' 
-#' @return This function return a list of plots.
+#' @return  
+#' This function return as first element a list of eullerr plots object ('$euler_plot') and as second element a data.table with specific content of each region on format of 'deg_table_in' ('$dt_region_content').
 #' 
-#' @details Comparison is performed using uniprot ids.
+#' @details 
+#' Comparison is performed using uniprot ids.  
+#'
 #' TODO:
 #'    - in option management of up/down. Although this is already possible in the current state of development by transforming deg_table upstream, it would be a good idea to add the following 2 options)
 #'       - summarize analyse: merge up and down on single analyse (after prefixing genes by their status "up_"/"down_")
@@ -173,8 +176,9 @@ compute_euler_plot <- function(deg_table_in,
   # prevent modification of input tables
   deg_table <- copy(deg_table_in)
   
-  # build 'dict_uniprot_to_symbol' if null
-  if (is.null(dict_uniprot_to_symbol)) {
+  # build 'dict_uniprot_to_symbol' column 'symbol' is present on all sub_dt of input and if dict_uniprot_to_symbol is null
+  with_symbol <- all(sapply(deg_table_base$data, function(dt) "symbol" %in% names(dt)))
+  if (with_symbol & is.null(dict_uniprot_to_symbol)) {
     dict_uniprot_to_symbol <- unique(rbindlist(deg_table$data))
     # sort only to ensure reproducibility in the case of nonunique uniprot/symbol combinations
     setorder(dict_uniprot_to_symbol)
@@ -277,14 +281,24 @@ compute_euler_plot <- function(deg_table_in,
     batch = deg_dt_i$batch[1]  # better than "deg_dt_name" (e.g: 'Batch1.0.5849625.0.05.deregulated')
     for (region_name in names(regions_content$specific_intersect)) {
       region_content <- regions_content$specific_intersect[[region_name]]
-      new_row <- list(batch = paste0("_dcmp.", batch),
-                      group = paste0("_sp.", region_name),
-                      lfc_abs_lim = lfc_abs_lim,
-                      min_signif = min_signif,
-                      type = type,
-                      data = list(data.table(dict_uniprot_to_symbol[region_content],
-                                             uniprot = region_content))
-                      )
+      if(with_symbol) {
+        new_row <- list(batch = paste0("_dcmp.", batch),
+                        group = paste0("_sp.", region_name),
+                        lfc_abs_lim = lfc_abs_lim,
+                        min_signif = min_signif,
+                        type = type,
+                        data = list(data.table(dict_uniprot_to_symbol[region_content],
+                                               uniprot = region_content))
+        )
+      } else {
+        new_row <- list(batch = paste0("_dcmp.", batch),
+                        group = paste0("_sp.", region_name),
+                        lfc_abs_lim = lfc_abs_lim,
+                        min_signif = min_signif,
+                        type = type,
+                        data = list(data.table(uniprot = region_content))
+        )
+      }
       list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
                                                 list(new_row))
     }
@@ -354,14 +368,24 @@ compute_euler_plot <- function(deg_table_in,
         batch = inter_b_comp_names  # better than "paste0(deg_dt_name, ":", mode_inter_batch[[inter_b_comp_names]])" (e.g: 'Batch1.0.5849625.0.05.deregulated:union')
         for (region_name in names(regions_content$specific_intersect)) {
           region_content <- regions_content$specific_intersect[[region_name]]
-          new_row <- list(batch = paste0("_dcmp.", batch),
-                          group = paste0("_sp.", region_name),
-                          lfc_abs_lim = lfc_abs_lim,
-                          min_signif = min_signif,
-                          type = type,
-                          data = list(data.table(symbol = dict_uniprot_to_symbol[region_content],
-                                                 uniprot = region_content))
-          )
+          if(with_symbol) {
+            new_row <- list(batch = paste0("_dcmp.", batch),
+                            group = paste0("_sp.", region_name),
+                            lfc_abs_lim = lfc_abs_lim,
+                            min_signif = min_signif,
+                            type = type,
+                            data = list(data.table(symbol = dict_uniprot_to_symbol[region_content],
+                                                   uniprot = region_content))
+            )
+          } else {
+            new_row <- list(batch = paste0("_dcmp.", batch),
+                            group = paste0("_sp.", region_name),
+                            lfc_abs_lim = lfc_abs_lim,
+                            min_signif = min_signif,
+                            type = type,
+                            data = list(data.table(uniprot = region_content))
+            )
+          }
           list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
                                                     list(new_row))
         }                      
