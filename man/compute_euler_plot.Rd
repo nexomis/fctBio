@@ -13,12 +13,13 @@ compute_euler_plot(
   inter_batch = NULL,
   mode_inter_batch = NULL,
   shape = "ellipse",
+  sort_group_for_region_naming = TRUE,
   path_dir_to_save_plot = NULL,
   dict_uniprot_to_symbol = NULL
 )
 }
 \arguments{
-\item{deg_table_in}{Recquired. dt with significant results: results of \code{data.table(deseq_pred$cross_args_and_generate_lists())}. (Note: differente, pvalue, log_FC and deregulation type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued.}
+\item{deg_table_in}{Recquired. dt with significant results: results of \code{data.table(deseq_pred$cross_args_and_generate_lists())}. (Note: differente, pvalue, log_FC and deregulaton type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued. 'group' and 'abtch' must not contains '&'.}
 
 \item{min_to_displayed_threshold}{(default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).}
 
@@ -28,11 +29,13 @@ compute_euler_plot(
 
 \item{mode_ext_groups}{(default: 'union') Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.}
 
-\item{inter_batch}{(default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'.}
+\item{inter_batch}{(default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'. Names must not contains '&'.}
 
 \item{mode_inter_batch}{(default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.}
 
 \item{shape}{(default: 'ellipse') euler diagram shape.}
+
+\item{sort_group_for_region_naming}{(default=TRUE) Alphanumerically sorts the names of the groups composing each region into the name of the region, or concervates the order of the various groups in the batch in question as in the initial input}
 
 \item{path_dir_to_save_plot}{(default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.}
 

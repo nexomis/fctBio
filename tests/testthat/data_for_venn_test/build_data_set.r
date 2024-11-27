@@ -1,7 +1,7 @@
 # script for building data (input and reference) for unitary test of 'venn_genes' functions
 
 
-main_test_dir="tests/testthat/data_for_venn_test/data_for_venn_test/"
+main_test_dir="tests/testthat/data_for_venn_test/"
 dir.create(main_test_dir)
 
 deg_table_base <- data.table(
