@@ -1,7 +1,7 @@
 Package: fctBio
 Type: Package
 Title: Objects and methods for functional biology analysis
-Version: 1.1.0
+Version: 1.1.1
 Author: Julien FOURET <jfouret@nexomis.io>
 biocViews:
 Imports: 
@@ -49,8 +49,8 @@ Collate:
     'utils.r'
     'class_NestedEnrich.r'
     'load_ann_space.r'
-    'network_genes.r'
     'query_genes.r'
+    'sysbio_genes.r'
     'venn_genes.r'
 Depends: 
     R (>= 4.0)
