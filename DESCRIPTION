@@ -25,7 +25,8 @@ Imports:
     R6,
     stringr (>= 1.5.0),
     tibble,
-    tidyselect
+    tidyselect,
+    eulerr
 Maintainer: Julien FOURET <jfouret@nexomis.io>
 Description: This package provide different objects and methods to perform
   functional analysis in biology.
@@ -50,6 +51,7 @@ Collate:
     'load_ann_space.r'
     'network_genes.r'
     'query_genes.r'
+    'venn_genes.r'
 Depends: 
     R (>= 4.0)
 RoxygenNote: 7.3.2

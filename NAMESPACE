@@ -2,6 +2,7 @@
 
 export(NestedEnrich)
 export(THEME_NEXOMIS)
+export(compute_euler_plot)
 export(enrich)
 export(extend_network_trrust)
 export(load_ann_space)
