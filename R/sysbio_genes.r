@@ -1,3 +1,15 @@
+# TODO : default comportement more basic (same as web interface).
+#        define this function in 2 distinct step by 2 function.
+#        First in order to create 5 vectors (saved in 5 collumn of one dataframe in order to facilate junction and comparison) :
+#          3 about input (tf, target, na) and 2 about db request (tf, target).
+#        And a second function in order to manae output result from user option settings.
+#
+#        Finaaly, in future, a last function must be create in order to summarize all db request function sysbio in a single.
+#        In this order, it is more easy if variable name is universal.
+#        PS: detailled output isn't usefull
+
+
+
 #' Extend a list of genes by adding linked transcription factors (TFs) and/or target genes.
 #'
 #' @param trrust_db Path to the TRRUST database in tsv format.
@@ -9,7 +21,7 @@
 #' @param detailled_output [not implemented] To return in addition of vector of gene names, a dataframe with relation of each genes pairs.
 #' @return A character vector of extended genes.
 #' @examples
-#' extended_genes <- extend_gene_list(
+#' extended_genes <- extend_trrust(
 #'   trrust_db = "path/to/trrust_rawdata.human.tsv",
 #'   input_genes = c("BAX", "MYC", "TP53"),
 #'   add_tf = TRUE,
@@ -18,13 +30,13 @@
 #'   ignore_single_pmid = FALSE
 #' )
 #' @export
-extend_network_trrust <- function(trrust_db = system.file("extdata/human_network_annotations/trrust/data.tab", package = "fctBio"),
-                                  input_genes,
-                                  add_tf = TRUE,
-                                  add_target = TRUE,
-                                  keep_input_without_hit = TRUE,
-                                  ignore_single_pmid = FALSE,
-                                  detailled_output = FALSE) {
+extend_trrust <- function(trrust_db = system.file("extdata/human_network_annotations/trrust/data.tab", package = "fctBio"),
+                          input_genes,
+                          add_tf = TRUE,
+                          add_target = TRUE,
+                          keep_input_without_hit = TRUE,
+                          ignore_single_pmid = FALSE,
+                          detailled_output = FALSE) {
   
   # Load TRRUST database from tsv file and if specified, exclude relation supported by only 1 PMID reference
   trrust_data <- read.delim(trrust_db, header = TRUE)
@@ -56,6 +68,9 @@ extend_network_trrust <- function(trrust_db = system.file("extdata/human_network
   
   return(unique(results))
 }
+
+
+
 
 
 
