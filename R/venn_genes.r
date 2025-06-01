@@ -1,468 +1,661 @@
+#' @include aaa.r
+#' @include utils.r
 
-## Define function
+NULL
 
-# Draw simple and single euler plot about a named list of sets
-# 
-# @param min_to_displayed_threshold Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy)).
-draw_single_euler_plot <- function (sets,
-                                    min_to_displayed_threshold = 0.01,
-                                    shape = "ellipse",
-                                    title = NULL,
-                                    save_path_file = NULL) {
-  
-  euler_data <- eulerr::euler(sets, shape = shape)
-  
-  if (min_to_displayed_threshold < 1) {
-    min_to_displayed <- round(length(unique(unlist(sets))) * min_to_displayed_threshold)
-  } else {
-    min_to_displayed = min_to_displayed_threshold
+#' Draw Single Euler Plot
+#'
+#' @description
+#' Creates a simple Euler diagram for visualizing overlaps between sets.
+#' This function generates an Euler plot with customizable display thresholds
+#' and styling options, with optional saving to file.
+#'
+#' @param sets A named list of character vectors representing the sets to compare.
+#' @param min_to_displayed_threshold Numeric; minimal values to display on the plot.
+#' If less than 1, interpreted as a proportion of the universe (total unique elements
+#' across all sets). If 1 or greater, interpreted as an absolute count. Default is 0.01.
+#' @param shape Character; shape of the Euler diagram. Default is "ellipse".
+#' @param title Character; title for the plot. Default is NULL.
+#' @param save_path_file Character; file path to save the plot. If NULL, plot is
+#' not saved. Default is NULL.
+#'
+#' @return An Euler plot object that can be displayed or further customized.
+#'
+#' @examples
+#' sets <- list(
+#'   "Set A" = c("gene1", "gene2", "gene3"),
+#'   "Set B" = c("gene2", "gene3", "gene4"),
+#'   "Set C" = c("gene3", "gene4", "gene5")
+#' )
+#' plot <- draw_single_euler_plot(sets, title = "Gene Overlap")
+#'
+#' @export
+draw_single_euler_plot <- function(
+  sets,
+  min_to_displayed_threshold = 0.01,
+  shape = "ellipse",
+  title = NULL,
+  save_path_file = NULL
+) {
+
+  if (!is.list(sets) || is.null(names(sets))) {
+    stop("sets must be a named list", call. = FALSE)
   }
+
+  euler_data <- eulerr::euler(sets, shape = shape)
+
+  if (min_to_displayed_threshold < 1L) {
+    min_to_displayed <- round(
+      length(unique(unlist(sets))) * min_to_displayed_threshold
+    )
+  } else {
+    min_to_displayed <- min_to_displayed_threshold
+  }
+
   qts <- euler_data$original.values
   qts[qts < min_to_displayed] <- ""
-  
-  euler_diagram <- plot(euler_data,
-                        quantities = qts,
-                        lty = 1:6,
-                        edges = "black",
-                        main = paste0(title, "(min.val: ", min_to_displayed, ")"))
-  
+
+  euler_diagram <- plot(
+    euler_data,
+    quantities = qts,
+    lty = 1L:6L,
+    edges = "black",
+    main = paste0(title, " (min.val: ", min_to_displayed, ")")
+  )
+
   if (!is.null(save_path_file)) {
-    ggsave(
+    ggplot2::ggsave(
       filename = save_path_file,
       plot = euler_diagram,
       width = 11.69,
-      height = 8.27)
+      height = 8.27
+    )
   }
-  
+
   return(euler_diagram)
 }
 
+#' Extract Venn Diagram Zone Content
+#'
+#' @description
+#' Extracts the specific content of each zone in a Venn/Euler diagram,
+#' identifying which elements belong exclusively to specific combinations
+#' of sets. This function can process single sets or lists of sets and
+#' optionally save results to an Excel file.
+#'
+#' @param sets_list A named list of sets or a list of named lists of sets.
+#' Each list will be processed independently to extract zone-specific content.
+#' @param sort_group_for_region_naming Logical; whether to alphabetically sort
+#' group names when creating region names. If TRUE, sorts group names
+#' alphabetically. If FALSE, preserves the original order. Default is TRUE.
+#' @param path_xlsx_file_to_save_table Character; file path to save results
+#' in an Excel file. If provided, creates one sheet per set. Default is NULL.
+#'
+#' @return A named list of results for each input set. Each result contains
+#' the specific content of each zone as character vectors.
+#'
+#' @examples
+#' set123 <- list(
+#'   "Group1" = c("gene1", "gene2", "gene3"),
+#'   "Group2" = c("gene2", "gene4"),
+#'   "Group3" = c("gene1", "gene4", "gene5")
+#' )
+#' setABC <- list(
+#'   "GroupA" = c("geneA", "geneB", "geneC"),
+#'   "GroupB" = c("geneB", "geneC"),
+#'   "GroupC" = c("geneC", "geneD", "geneE")
+#' )
+#' results <- extract_venn_zones_content(
+#'   list("Set123" = set123, "SetABC" = setABC)
+#' )
+#'
+#' @export
+extract_venn_zones_content <- function(
+  sets_list,
+  sort_group_for_region_naming = TRUE,
+  path_xlsx_file_to_save_table = NULL
+) {
 
-
-# Extract specific content of each zone of a Venn/Euler diagram
-#
-# @param sets_list A named list of sets or a list of named lists of sets. Each list will be processed independently.
-# @param sort_group_for_region_naming (default=TRUE) Alphanumerically sorts the names of the groups composing each region into the name of the region, or concervates the order of the various groups in the batch in question as in the initial input
-# @param path_xlsx_file_to_save_table File path to save results in an Excel file (default: NULL). If not NULL, creates one sheet per set.
-# 
-# @return A named list of results for each input set or list of sets. Each result contains specific content of each zone.
-#
-# @examples
-# set123 <- list("111" = c("12345", "23456", "34567"),
-#                "222" = c("23456", "45678"),
-#                "333" = c("12345", "45678", "56789"))
-# setABC <- list("AAA" = c("ABCDE", "BCDEF", "DEFGH"),
-#                "BBB" = c("BCDEF", "DEFGH"),
-#                "CCC" = c("DEFGH", "EFGHI", "FGHIJ"))
-# extract_venn_zones_content(list("123" = set123,
-#                                 "ABC" = setABC),
-#                            "test.xlsx")
-#
-extract_venn_zones_content <- function(sets_list,
-                                           sort_group_for_region_naming = TRUE,
-                                           path_xlsx_file_to_save_table = NULL) {
-  # if only one set as input, transfromr to list of set to simplify function
-  if (!is.list(sets_list[[1]])) {
+  # Convert single set to list format for consistent processing
+  if (!is.list(sets_list[[1L]])) {
     sets_list <- list("specific_intersect" = sets_list)
   }
-  
+
   all_results <- list()
-  # for each global list
+
+  # Process each set
   for (set_name in names(sets_list)) {
     sets <- sets_list[[set_name]]
-    
-    # name all region
+
+    if (!is.list(sets) || is.null(names(sets))) {
+      warning("Skipping set '", set_name, "': must be a named list", call. = FALSE)
+      next
+    }
+
+    # Generate region names for all possible combinations
     if (sort_group_for_region_naming) {
-      region_names <- unlist(lapply(1:length(names(sets)), function(x) {
-        combn(sort(names(sets)), x, paste, collapse = "&")
+      region_names <- unlist(lapply(seq_along(names(sets)), function(x) {
+        utils::combn(sort(names(sets)), x, paste, collapse = "&")
       }))
     } else {
-      region_names <- unlist(lapply(1:length(names(sets)), function(x) {
-        combn(names(sets), x, paste, collapse = "&")
+      region_names <- unlist(lapply(seq_along(names(sets)), function(x) {
+        utils::combn(names(sets), x, paste, collapse = "&")
       }))
     }
-    
+
     regions_content <- list()
-    
-    # specific content of each region
+
+    # Extract specific content for each region
     for (region in region_names) {
       incl_sets <- unlist(strsplit(region, "&"))
       excl_sets <- setdiff(names(sets), incl_sets)
-      
-      # first, add all elements included in incl_sets. then, remove all elements included in excl_sets
-      region_i_contents <- as.character(na.omit(Reduce(intersect, sets[incl_sets])))
-      if (length(excl_sets) > 0) {
-        region_i_contents <- setdiff(region_i_contents, unlist(sets[excl_sets]))
+
+      # Find intersection of included sets
+      region_content <- as.character(na.omit(Reduce(intersect, sets[incl_sets])))
+
+      # Remove elements present in excluded sets
+      if (length(excl_sets) > 0L) {
+        region_content <- setdiff(region_content, unlist(sets[excl_sets]))
       }
-      
-      regions_content[[region]] <- region_i_contents
+
+      regions_content[[region]] <- region_content
     }
-    
+
     all_results[[set_name]] <- regions_content
   }
-  
-  # save result on excel file
+
+  # Save results to Excel file if requested
   if (!is.null(path_xlsx_file_to_save_table)) {
-    wb <- createWorkbook()
-    for (set_name in names(all_results)) {
-      addWorksheet(wb, set_name)
-      # convert result in table format
-      max_length <- max(sapply(all_results[[set_name]], length))
-      region_dt <- as.data.table(
-        do.call(cbind, lapply(all_results[[set_name]], function(x) {
-          if (length(x) == 0) return(rep(NA, max_length))
-          return(c(x, rep(NA, max_length - length(x))))
-        })))
-      writeData(wb, set_name, region_dt, rowNames = FALSE)
+    if (!requireNamespace("openxlsx", quietly = TRUE)) {
+      warning("openxlsx package required for Excel export", call. = FALSE)
+    } else {
+      wb <- openxlsx::createWorkbook()
+      for (set_name in names(all_results)) {
+        openxlsx::addWorksheet(wb, set_name)
+
+        # Convert results to table format
+        max_length <- max(sapply(all_results[[set_name]], length))
+        region_dt <- as.data.frame(
+          do.call(cbind, lapply(all_results[[set_name]], function(x) {
+            if (length(x) == 0L) return(rep(NA, max_length))
+            c(x, rep(NA, max_length - length(x)))
+          }))
+        )
+        openxlsx::writeData(wb, set_name, region_dt, rowNames = FALSE)
+      }
+      openxlsx::saveWorkbook(wb, path_xlsx_file_to_save_table, overwrite = TRUE)
     }
-    saveWorkbook(wb, path_xlsx_file_to_save_table, overwrite = TRUE)
   }
-  
+
   return(all_results)
 }
 
+#' Get External Group UniProt IDs
+#'
+#' @description
+#' Extracts UniProt IDs from a differential expression table based on
+#' specified batch and group combinations. Supports different modes
+#' for combining multiple groups.
+#'
+#' @param deg_dt A data.table with differential expression results containing
+#' columns: batch, group, type, and uniprot. The 'type' column must not contain
+#' NA values.
+#' @param ext_groups_dt A data.table or data.frame with columns 'batch' and 'group'
+#' specifying which groups to extract.
+#' @param mode_ext_groups Character; mode for combining groups. Must be one of:
+#' "individual" (separate list for each group), "union" (combine all groups),
+#' or "intersect" (intersection of all groups).
+#' @param deg_dt_name Character; name of the deg_dt for warning messages.
+#' Default is NULL.
+#'
+#' @return A named list of character vectors containing UniProt IDs.
+#'
+#' @examples
+#' \dontrun{
+#' deg_data <- data.table(
+#'   batch = c("B1", "B1", "B2"),
+#'   group = c("G1", "G2", "G1"),
+#'   type = c("up", "down", "up"),
+#'   uniprot = list(c("P1", "P2"), c("P2", "P3"), c("P1", "P4"))
+#' )
+#' ext_groups <- data.table(batch = "B1", group = c("G1", "G2"))
+#' result <- get_ext_group(deg_data, ext_groups, "union")
+#' }
+#'
+#' @keywords internal
+get_ext_group <- function(
+  deg_dt,
+  ext_groups_dt,
+  mode_ext_groups,
+  deg_dt_name = NULL
+) {
 
+  if (!mode_ext_groups %in% c("individual", "union", "intersect")) {
+    stop("mode_ext_groups must be 'individual', 'union', or 'intersect'", call. = FALSE)
+  }
 
-# Get external group uniprot ids
-# 
-# @param deg_dt Recquired. dt with significant results: results of `data.table(deseq_pred$cross_args_and_generate_lists())`. 'type' columns must be not contains 'NA' value.
-# @param ext_groups_dt Recquired. (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_dt'.
-# @param mode_ext_groups Recquired. Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.
-# @param deg_dt_name name of 'deg_dt' used only to precise potential warning
-# 
-get_ext_group <- function(deg_dt,
-                          ext_groups_dt,
-                          mode_ext_groups,
-                          deg_dt_name = NULL) {
   deg_dt_ext <- deg_dt[ext_groups_dt, on = .(batch, group)]
-  # check missing values
+
+  # Check for missing values
   missing_rows <- deg_dt_ext[is.na(type)]
-  if (nrow(missing_rows) > 0) {
-    warning("WARN: Some 'ext_groups' values were not found in 'deg_table' (not included in 'ext_groups') for analyse of ",
-            deg_dt_name)
+  if (nrow(missing_rows) > 0L) {
+    warning(
+      "Some 'ext_groups' values were not found in 'deg_table' for analysis of ",
+      deg_dt_name %||% "unnamed dataset", call. = FALSE
+    )
     print(missing_rows[, .(batch, group)])
     deg_dt_ext <- deg_dt_ext[!is.na(type)]
   }
-  if (mode_ext_groups == "individual") {
-    ext_sets <- lapply(deg_dt_ext$uniprot, function(uniprot_ids) {
-      unique(na.omit(unlist(uniprot_ids)))
-    })
-    names(ext_sets) <- paste("EXT", deg_dt_ext$batch, deg_dt_ext$group, sep=":")
-  } else if (mode_ext_groups == "union") {
-    ext_sets <- list(unique(na.omit(unlist(deg_dt_ext$uniprot))))
-    names(ext_sets) <- "EXT:union"
-  } else if (mode_ext_groups == "intersect") {
-    ext_sets <- list(as.character(na.omit(Reduce(intersect, deg_dt_ext$uniprot))))
-    names(ext_sets) <- "EXT:intersect"
-  } else {
-    stop("Error: unknown value for 'mode_ext_groups': '", mode_ext_groups, "'")
-  }
-  return(ext_sets)
+
+  switch(mode_ext_groups,
+    individual = {
+      ext_sets <- lapply(deg_dt_ext$uniprot, function(uniprot_ids) {
+        unique(na.omit(unlist(uniprot_ids)))
+      })
+      names(ext_sets) <- paste("EXT", deg_dt_ext$batch, deg_dt_ext$group, sep = ":")
+      ext_sets
+    },
+    union = {
+      ext_sets <- list(unique(na.omit(unlist(deg_dt_ext$uniprot))))
+      names(ext_sets) <- "EXT:union"
+      ext_sets
+    },
+    intersect = {
+      ext_sets <- list(as.character(na.omit(Reduce(intersect, deg_dt_ext$uniprot))))
+      names(ext_sets) <- "EXT:intersect"
+      ext_sets
+    }
+  )
 }
 
-
-
-#' Compute and draw euleur plot based on significant DEG table
+#' Compute and Draw Euler Plot from DEG Table
 #'
-#' Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
+#' @description
+#' Computes and draws Euler plots based on significant differential expression
+#' gene (DEG) tables. The analysis is performed at the UniProt level, with
+#' NA values ignored. The function supports both intra-batch and inter-batch
+#' comparisons with various customization options.
 #'
-#' @param deg_table_in Recquired. dt with significant results: results of `data.table(deseq_pred$cross_args_and_generate_lists())`. (Note: differente, pvalue, log_FC and deregulaton type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued. 'group' and 'abtch' must not contains '&'.
-#' @param to_keep (default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.
-#' @param min_to_displayed_threshold (default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).
-#' @param ext_groups (default: NULL) list of uniprot ids used as ext_group (list or vector). If table (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_table_in' (before filtering using 'to_keep' and considering appropriate 'type', 'lfc' and 'pval'). If 'NULL', no external set. Used for inter AND intra batche comparison.
-#' @param mode_ext_groups (default: 'union') Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.
-#' @param inter_batch (default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'. Names must not contains '&'.
-#' @param mode_inter_batch (default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.
-#' @param shape (default: 'ellipse') euler diagram shape.
-#' @param sort_group_for_region_naming (default=TRUE) Alphanumerically sorts the names of the groups composing each region into the name of the region, or concervates the order of the various groups in the batch in question as in the initial input
-#' @param path_dir_to_save_plot (default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.
-#' @param dict_uniprot_to_symbol (default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result if 'symbol' column is already present in 'deg_table_in' input (if 'symbol column not in input table, this parameters will be ignored). If NULL, reconstructed from input table. 
-#' 
-#' @return  
-#' This function return as first element a list of eullerr plots object ('$euler_plot') and as second element a data.table with specific content of each region on format of 'deg_table_in' ('$dt_region_content').
-#' 
-#' @details 
-#' Comparison is performed using uniprot ids.  
+#' @param deg_table_in A data.table with significant DEG results. Must contain
+#' columns: batch, group, type, lfc_abs_lim, min_signif, and data (containing
+#' uniprot IDs). The 'type' column should not contain NA values. Group and
+#' batch names must not contain '&' characters.
+#' @param min_to_displayed_threshold Numeric; minimal values to display on plots.
+#' If less than 1, interpreted as proportion of universe. Default is 0.01.
+#' @param to_keep A data.table or data.frame with columns 'batch' and 'group'
+#' to filter the analysis. If NULL, all data is kept. Default is NULL.
+#' @param ext_groups External groups to include in the analysis. Can be:
+#' a list/vector of UniProt IDs, or a data.table/data.frame with 'batch' and
+#' 'group' columns. Default is NULL.
+#' @param mode_ext_groups Character; mode for external groups when ext_groups
+#' is a table. Must be "individual", "union", or "intersect". Default is "union".
+#' @param inter_batch A named list specifying batches to compare for inter-batch
+#' analysis. If NULL and mode_inter_batch is not NULL, includes all batches.
+#' Default is NULL.
+#' @param mode_inter_batch A named list specifying the mode ("union" or "intersect")
+#' for each inter-batch comparison. If NULL, no inter-batch comparison is performed.
+#' Default is NULL.
+#' @param shape Character; shape for Euler diagrams. Default is "ellipse".
+#' @param sort_group_for_region_naming Logical; whether to sort group names
+#' alphabetically in region names. Default is TRUE.
+#' @param path_dir_to_save_plot Character; directory path to save individual
+#' plots as PDF files. If NULL, plots are not saved. Default is NULL.
+#' @param dict_uniprot_to_symbol Named character vector mapping UniProt IDs
+#' to gene symbols. If NULL and 'symbol' column exists in input data, it will
+#' be reconstructed from the input table. Default is NULL.
 #'
-#' TODO:
-#'    - in option management of up/down. Although this is already possible in the current state of development by transforming deg_table upstream, it would be a good idea to add the following 2 options)
-#'       - summarize analyse: merge up and down on single analyse (after prefixing genes by their status "up_"/"down_")
-#'       - very interesting analyse: venn with up and down in same plot on disctinct sets to highlight swtched genes !
-#'    - ext_groups:
-#'       - add possibility to put mutliple specific gene list as vector (with mode: union, individual, intersect)
-#'       - add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
-#'    - plot: 
-#'       - put all venn diagram on same pdf using output/append on new page option !
-#'       - manage tittle parameters
-#'    - reduce time running: don't perform independantly euleurr plot ! use already computed intersection to put stats to eulleur diagram
-#' 
+#' @return A list with two elements:
+#' \describe{
+#'   \item{euler_plots}{A list of Euler plot objects}
+#'   \item{dt_region_content}{A data.table with specific content of each region
+#'   in the same format as the input deg_table_in}
+#' }
+#'
+#' @details
+#' The comparison is performed using UniProt IDs. The function handles both
+#' intra-batch comparisons (comparing groups within the same batch) and
+#' inter-batch comparisons (comparing batches across different conditions).
+#'
 #' @examples
-#' Example usage
-#' 
-#' compute_euler_plot(deg_table = data.table(deseq_pred$cross_args_and_generate_lists(
-#'                                             cross_type = c("deregulated"),
-#'                                             cross_lfc_abs_lim = c(LFC_threshold),
-#'                                             cross_min_signif = c(pvaladj_threshold)
-#'                                          )
-#'                   )
-#'                   
+#' \dontrun{
+#' # Basic usage
+#' result <- compute_euler_plot(deg_table)
+#'
+#' # With filtering and external groups
+#' result <- compute_euler_plot(
+#'   deg_table_in = my_deg_table,
+#'   to_keep = data.table(batch = "B1", group = c("G1", "G2")),
+#'   ext_groups = c("P12345", "P67890"),
+#'   path_dir_to_save_plot = "plots/"
+#' )
+#' }
+#'
 #' @export
-compute_euler_plot <- function(deg_table_in,
-                               min_to_displayed_threshold = 0.01,
-                               to_keep = NULL,
-                               ext_groups = NULL,
-                               mode_ext_groups = "union",
-                               inter_batch = NULL,
-                               mode_inter_batch = NULL,
-                               shape = "ellipse",
-                               sort_group_for_region_naming = TRUE,
-                               path_dir_to_save_plot = NULL,
-                               dict_uniprot_to_symbol = NULL) {
-  
-  # prevent modification of input tables
-  deg_table <- copy(deg_table_in)
-  
-  # type column must be not NA (because this criteria is used to validate sub-table selection)
+compute_euler_plot <- function(
+  deg_table_in,
+  min_to_displayed_threshold = 0.01,
+  to_keep = NULL,
+  ext_groups = NULL,
+  mode_ext_groups = "union",
+  inter_batch = NULL,
+  mode_inter_batch = NULL,
+  shape = "ellipse",
+  sort_group_for_region_naming = TRUE,
+  path_dir_to_save_plot = NULL,
+  dict_uniprot_to_symbol = NULL
+) {
+
+  # Input validation
+  if (!data.table::is.data.table(deg_table_in)) {
+    stop("deg_table_in must be a data.table", call. = FALSE)
+  }
+
+  required_cols <- c("batch", "group", "type", "lfc_abs_lim", "min_signif", "data")
+  missing_cols <- setdiff(required_cols, names(deg_table_in))
+  if (length(missing_cols) > 0L) {
+    stop(
+      "Missing required columns: ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  # Prevent modification of input table
+  deg_table <- data.table::copy(deg_table_in)
+
+  # Remove rows with NA type
   deg_table <- deg_table[!is.na(type)]
-  
-  # build 'dict_uniprot_to_symbol' column 'symbol' is present on all sub_dt of input and if dict_uniprot_to_symbol is null
+
+  # Build symbol dictionary if needed
   with_symbol <- all(sapply(deg_table$data, function(dt) "symbol" %in% names(dt)))
-  if (with_symbol & is.null(dict_uniprot_to_symbol)) {
-    dict_uniprot_to_symbol <- unique(rbindlist(deg_table$data))
-    # sort only to ensure reproducibility in the case of nonunique uniprot/symbol combinations
-    setorder(dict_uniprot_to_symbol)
-    dict_uniprot_to_symbol <- setNames(dict_uniprot_to_symbol$symbol,
-                                       dict_uniprot_to_symbol$uniprot)
+  if (with_symbol && is.null(dict_uniprot_to_symbol)) {
+    dict_uniprot_to_symbol <- unique(data.table::rbindlist(deg_table$data))
+    data.table::setorder(dict_uniprot_to_symbol)  # Ensure reproducibility
+    dict_uniprot_to_symbol <- stats::setNames(
+      dict_uniprot_to_symbol$symbol,
+      dict_uniprot_to_symbol$uniprot
+    )
   }
-  # warning if nonunique uniprot/symbol combinations
-  dup_uniprots <- dict_uniprot_to_symbol[duplicated(names(dict_uniprot_to_symbol))]
-  if (length(dup_uniprots) > 0) {
-    warning("WARN: some uniprot ids are associated with different symbol ids: '",
-            dup_uniprots,
-            "'. Association of symbol id will be based only on the first.")
+
+  # Check for duplicate UniProt-symbol mappings
+  if (!is.null(dict_uniprot_to_symbol)) {
+    dup_uniprots <- dict_uniprot_to_symbol[duplicated(names(dict_uniprot_to_symbol))]
+    if (length(dup_uniprots) > 0L) {
+      warning(
+        "Some UniProt IDs are associated with different symbols. ",
+        "Using first association only.", call. = FALSE
+      )
+    }
   }
-  
-  # extract uniprot ids
-  deg_table[, uniprot := lapply(data, function(x) {x$uniprot})]
+
+  # Extract UniProt IDs
+  deg_table[, uniprot := lapply(data, function(x) x$uniprot)]
   deg_table[, data := NULL]
-  
-  # create exterrnal sets or delay it for next steps by implementing 'deg_table_unfiltered'
+
+  # Handle external groups
   deg_table_unfiltered <- NULL
-  if (!is.null(ext_groups)){
-    if (is.data.table(ext_groups) || is.data.frame(ext_groups)) {
-      # to be defined later for each lfc, pvalue and type, keep all data before filtering using 'to_keep'
-      deg_table_unfiltered <- copy(deg_table)
+  ext_sets <- NULL
+
+  if (!is.null(ext_groups)) {
+    if (data.table::is.data.table(ext_groups) || is.data.frame(ext_groups)) {
+      deg_table_unfiltered <- data.table::copy(deg_table)
     } else if (is.list(ext_groups) || is.vector(ext_groups)) {
       ext_sets <- list(unique(unlist(ext_groups)))
       names(ext_sets) <- "EXT_LIST"
     } else {
-      stop("'ext_groups' must be a data.table, data.frame, list, or vector.")
+      stop("ext_groups must be a data.table, data.frame, list, or vector", call. = FALSE)
     }
-  } else {
-    ext_sets = NULL
   }
-  
-  # filter batchs/groups
+
+  # Filter batches/groups
   if (!is.null(to_keep)) {
     deg_table <- deg_table[to_keep, on = .(batch, group)]
-    # check missing values
     missing_rows <- deg_table[is.na(type)]
-    if (nrow(missing_rows) > 0) {
-      warning("WARN: Some 'to_keep' values were not found in 'deg_table' (not included in 'to_keep').")
+    if (nrow(missing_rows) > 0L) {
+      warning("Some 'to_keep' values were not found in 'deg_table'", call. = FALSE)
       print(missing_rows[, .(batch, group)])
       deg_table <- deg_table[!is.na(type)]
     }
   }
-  
+
+  # Create output directory if needed
   if (!is.null(path_dir_to_save_plot) && !dir.exists(path_dir_to_save_plot)) {
-    dir.create(path_dir_to_save_plot)
+    dir.create(path_dir_to_save_plot, recursive = TRUE)
   }
-  
+
   euler_plots <- list()
-  list_new_rows_dt_region_content <- list()
-  
-  ### Intra-batch
-  
-  list_deg_table <- split(deg_table, by = c("batch", "lfc_abs_lim", "min_signif", "type"))
-  
+  list_new_rows <- list()
+
+  # Intra-batch analysis
+  list_deg_table <-
+    split(deg_table, by = c("batch", "lfc_abs_lim", "min_signif", "type"))
+
   for (deg_dt_name in names(list_deg_table)) {
     deg_dt_i <- list_deg_table[[deg_dt_name]]
-    
-    lfc_abs_lim_i = deg_dt_i$lfc_abs_lim[1]
-    min_signif_i = deg_dt_i$min_signif[1]
-    type_i = deg_dt_i$type[1]
-    
+
+    lfc_abs_lim_i <- deg_dt_i$lfc_abs_lim[1L]
+    min_signif_i <- deg_dt_i$min_signif[1L]
+    type_i <- deg_dt_i$type[1L]
+
+    # Create sets for this analysis
     sets <- lapply(deg_dt_i$uniprot, function(uniprot_ids) {
       as.character(na.omit(unlist(uniprot_ids)))
     })
-    names(sets) <- deg_dt_i$group 
-    
-    # create exterrnal sets if necessary
-    if (!is.null(deg_table_unfiltered)){
-      deg_table_unfiltered_i <- deg_table_unfiltered[lfc_abs_lim == lfc_abs_lim_i &
-                                                       min_signif == min_signif_i &
-                                                       type_i == type]
-      ext_sets <- get_ext_group(deg_dt = deg_table_unfiltered_i,
-                                ext_groups_dt = ext_groups,
-                                mode_ext_groups = mode_ext_groups,
-                                deg_dt_name = deg_dt_name)
+    names(sets) <- deg_dt_i$group
+
+    # Add external sets if needed
+    if (!is.null(deg_table_unfiltered)) {
+      deg_table_unfiltered_i <- deg_table_unfiltered[
+        lfc_abs_lim == lfc_abs_lim_i
+        & min_signif == min_signif_i
+        & type == type_i
+      ]
+      ext_sets <- get_ext_group(
+        deg_dt = deg_table_unfiltered_i,
+        ext_groups_dt = ext_groups,
+        mode_ext_groups = mode_ext_groups,
+        deg_dt_name = deg_dt_name
+      )
     }
     sets <- c(sets, ext_sets)
-    
-    # euler_plot
-    path_file = if(!is.null(path_dir_to_save_plot)) {
+
+    # Create Euler plot
+    path_file <- if (!is.null(path_dir_to_save_plot)) {
       paste0(path_dir_to_save_plot, "/", deg_dt_name, ".pdf")
-    } else NULL
-    euler_diagram <- draw_single_euler_plot(sets,
-                                            min_to_displayed_threshold,
-                                            title = paste0(deg_dt_name, " | "),
-                                            shape = shape,
-                                            save_path_file = path_file)
-    
+    } else {
+      NULL
+    }
+
+    euler_diagram <- draw_single_euler_plot(
+      sets = sets,
+      min_to_displayed_threshold = min_to_displayed_threshold,
+      title = paste0(deg_dt_name, " | "),
+      shape = shape,
+      save_path_file = path_file
+    )
+
     euler_plots[[deg_dt_name]] <- euler_diagram
-    
+
+    # Extract region content
     regions_content <- extract_venn_zones_content(
-      sets, sort_group_for_region_naming=sort_group_for_region_naming)
-    
-    # formatting of set list results from “xxx” to initial “deg_table” format (temporarily saved on a list)
-    batch_i = deg_dt_i$batch[1]  # better than "deg_dt_name" (e.g: 'Batch1.0.5849625.0.05.deregulated')
+      sets,
+      sort_group_for_region_naming = sort_group_for_region_naming
+    )
+
+    # Format results
+    batch_i <- deg_dt_i$batch[1L]
     for (region_name in names(regions_content$specific_intersect)) {
       region_content <- regions_content$specific_intersect[[region_name]]
-      if(with_symbol) {
-        new_row <- list(batch = paste0("_dcmp.", batch_i),
-                        group = paste0("_sp.", region_name),
-                        lfc_abs_lim = lfc_abs_lim_i,
-                        min_signif = min_signif_i,
-                        type = type_i,
-                        data = list(data.table(dict_uniprot_to_symbol[region_content],
-                                               uniprot = region_content))
+
+      if (with_symbol && !is.null(dict_uniprot_to_symbol)) {
+        new_row <- list(
+          batch = paste0("_dcmp.", batch_i),
+          group = paste0("_sp.", region_name),
+          lfc_abs_lim = lfc_abs_lim_i,
+          min_signif = min_signif_i,
+          type = type_i,
+          data = list(data.table::data.table(
+            symbol = dict_uniprot_to_symbol[region_content],
+            uniprot = region_content
+          ))
         )
       } else {
-        new_row <- list(batch = paste0("_dcmp.", batch_i),
-                        group = paste0("_sp.", region_name),
-                        lfc_abs_lim = lfc_abs_lim_i,
-                        min_signif = min_signif_i,
-                        type = type_i,
-                        data = list(data.table(uniprot = region_content))
+        new_row <- list(
+          batch = paste0("_dcmp.", batch_i),
+          group = paste0("_sp.", region_name),
+          lfc_abs_lim = lfc_abs_lim_i,
+          min_signif = min_signif_i,
+          type = type_i,
+          data = list(data.table::data.table(uniprot = region_content))
         )
       }
-      list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
-                                                list(new_row))
+      list_new_rows <- append(
+        list_new_rows,
+        list(new_row)
+      )
     }
   }
-  
-  ### Inter-batch
-  
-  if (is.null(inter_batch)) {
-    inter_batch_is_initially_null = TRUE
-  } else {
-    inter_batch_is_initially_null = FALSE
-  }
-  list_deg_table <- split(deg_table, by = c("lfc_abs_lim", "min_signif", "type"))
-  
+
+  # Inter-batch analysis
   if (!is.null(mode_inter_batch)) {
-    # for each threshold in deg_table
+    inter_batch_is_initially_null <- is.null(inter_batch)
+    list_deg_table <- split(deg_table, by = c("lfc_abs_lim", "min_signif", "type"))
+
     for (deg_dt_name in names(list_deg_table)) {
       deg_dt_i <- list_deg_table[[deg_dt_name]]
-      
-      lfc_abs_lim_i = deg_dt_i$lfc_abs_lim[1]
-      min_signif_i = deg_dt_i$min_signif[1]
-      type_i = deg_dt_i$type[1]
-      
-      # create exterrnal sets if necessary
-      if (!is.null(deg_table_unfiltered)){
-        deg_table_unfiltered_i <- deg_table_unfiltered[lfc_abs_lim == lfc_abs_lim_i &
-                                                         min_signif == min_signif_i &
-                                                         type_i == type]
-        ext_sets <- get_ext_group(deg_dt = deg_table_unfiltered_i,
-                                  ext_groups_dt = ext_groups,
-                                  mode_ext_groups = mode_ext_groups,
-                                  deg_dt_name = deg_dt_name)
+
+      lfc_abs_lim_i <- deg_dt_i$lfc_abs_lim[1L]
+      min_signif_i <- deg_dt_i$min_signif[1L]
+      type_i <- deg_dt_i$type[1L]
+
+      # Add external sets if needed
+      if (!is.null(deg_table_unfiltered)) {
+        deg_table_unfiltered_i <- deg_table_unfiltered[
+          lfc_abs_lim == lfc_abs_lim_i
+          & min_signif == min_signif_i
+          & type == type_i
+        ]
+        ext_sets <- get_ext_group(
+          deg_dt = deg_table_unfiltered_i,
+          ext_groups_dt = ext_groups,
+          mode_ext_groups = mode_ext_groups,
+          deg_dt_name = deg_dt_name
+        )
       }
-      
-      # if not list batch to include on comparison, include all available batches
+
+      # Set up inter-batch comparisons
       if (inter_batch_is_initially_null) {
-        inter_batch <- list(rep(unique(deg_dt_i$batch),
-                                n=length(mode_inter_batch)))
+        inter_batch <- list(rep(
+          unique(deg_dt_i$batch),
+          length(mode_inter_batch)
+        ))
         names(inter_batch) <- names(mode_inter_batch)
       }
-      # for each recquested inter-batch
+
+      # Process each inter-batch comparison
       for (inter_b_comp_names in names(mode_inter_batch)) {
-        deg_dt_i_batch_selected <- deg_dt_i[batch %in% inter_batch[[inter_b_comp_names]] ]
-        # flatten uniprot list by batch (union or interesect)
+        deg_dt_i_batch_selected <- deg_dt_i[batch %in% inter_batch[[inter_b_comp_names]]]
+
+        # Flatten UniProt lists by batch
         if (mode_inter_batch[[inter_b_comp_names]] == "union") {
-          deg_dt_i_batch_selected_flattened <- rbindlist(lapply(
+          deg_dt_i_batch_select_flat <- data.table::rbindlist(lapply(
             unique(deg_dt_i_batch_selected$batch), function(x) {
               dt <- deg_dt_i_batch_selected[batch == x]
-              data.table(
+              data.table::data.table(
                 batch = x,
                 uniprot = list(as.character(na.omit(unique(unlist(dt$uniprot)))))
               )
-            }))
+            }
+          ))
         } else if (mode_inter_batch[[inter_b_comp_names]] == "intersect") {
-          deg_dt_i_batch_selected_flattened <- rbindlist(lapply(
+          deg_dt_i_batch_select_flat <- data.table::rbindlist(lapply(
             unique(deg_dt_i_batch_selected$batch), function(x) {
               dt <- deg_dt_i_batch_selected[batch == x]
-              data.table(
+              data.table::data.table(
                 batch = x,
                 uniprot = list(as.character(na.omit(Reduce(intersect, dt$uniprot))))
               )
-            }))
+            }
+          ))
         } else {
-          stop("Error: unknown value for specific element in 'mode_inter_batch': '", mode_inter_batch[[inter_b_comp_names]], "'")
+          stop(
+            "Unknown value for mode_inter_batch: '",
+            mode_inter_batch[[inter_b_comp_names]], "'", call. = FALSE
+          )
         }
-        sets = deg_dt_i_batch_selected_flattened$uniprot
+
+        sets <- deg_dt_i_batch_select_flat$uniprot
         names(sets) <- unique(deg_dt_i_batch_selected$batch)
-        
         sets <- c(sets, ext_sets)
-        
-        # euler_plot
-        path_file = if(!is.null(path_dir_to_save_plot)) {
-          paste0(path_dir_to_save_plot, "/Intra-batch_", inter_b_comp_names,".pdf")
-        } else NULL
-        euler_diagram <- draw_single_euler_plot(sets, min_to_displayed_threshold,
-                                                title = paste0("Intra-batch | ", inter_b_comp_names, " | ", deg_dt_name),
-                                                save_path_file = path_file)
-        euler_plots[[paste0("Intra-batch_", inter_b_comp_names, "_", deg_dt_name)]] <- euler_diagram
-        # content by region
+
+        # Create Euler plot
+        path_file <- if (!is.null(path_dir_to_save_plot)) {
+          paste0(path_dir_to_save_plot, "/Inter-batch_", inter_b_comp_names, ".pdf")
+        } else {
+          NULL
+        }
+
+        euler_diagram <- draw_single_euler_plot(
+          sets = sets,
+          min_to_displayed_threshold = min_to_displayed_threshold,
+          title = paste0("Inter-batch | ", inter_b_comp_names, " | ", deg_dt_name),
+          save_path_file = path_file
+        )
+
+        euler_plots[[
+          paste0("Inter-batch_", inter_b_comp_names, "_", deg_dt_name)
+        ]] <- euler_diagram
+
+        # Extract region content
         regions_content <- extract_venn_zones_content(
-          sets, sort_group_for_region_naming=sort_group_for_region_naming)
-        # formatting of set list results from “xxx” to initial “deg_table” format
-        batch_i = inter_b_comp_names  # better than "paste0(deg_dt_name, ":", mode_inter_batch[[inter_b_comp_names]])" (e.g: 'Batch1.0.5849625.0.05.deregulated:union')
+          sets,
+          sort_group_for_region_naming = sort_group_for_region_naming
+        )
+
+        # Format results
+        batch_i <- inter_b_comp_names
         for (region_name in names(regions_content$specific_intersect)) {
           region_content <- regions_content$specific_intersect[[region_name]]
-          if(with_symbol) {
-            new_row <- list(batch = paste0("_dcmp.", batch_i),
-                            group = paste0("_sp.", region_name),
-                            lfc_abs_lim = lfc_abs_lim_i,
-                            min_signif = min_signif_i,
-                            type = type_i,
-                            data = list(data.table(symbol = dict_uniprot_to_symbol[region_content],
-                                                   uniprot = region_content))
+
+          if (with_symbol && !is.null(dict_uniprot_to_symbol)) {
+            new_row <- list(
+              batch = paste0("_dcmp.", batch_i),
+              group = paste0("_sp.", region_name),
+              lfc_abs_lim = lfc_abs_lim_i,
+              min_signif = min_signif_i,
+              type = type_i,
+              data = list(data.table::data.table(
+                symbol = dict_uniprot_to_symbol[region_content],
+                uniprot = region_content
+              ))
             )
           } else {
-            new_row <- list(batch = paste0("_dcmp.", batch_i),
-                            group = paste0("_sp.", region_name),
-                            lfc_abs_lim = lfc_abs_lim_i,
-                            min_signif = min_signif_i,
-                            type = type_i,
-                            data = list(data.table(uniprot = region_content))
+            new_row <- list(
+              batch = paste0("_dcmp.", batch_i),
+              group = paste0("_sp.", region_name),
+              lfc_abs_lim = lfc_abs_lim_i,
+              min_signif = min_signif_i,
+              type = type_i,
+              data = list(data.table::data.table(uniprot = region_content))
             )
           }
-          list_new_rows_dt_region_content <- append(list_new_rows_dt_region_content,
-                                                    list(new_row))
-        }                      
-      }      
+          list_new_rows <- append(
+            list_new_rows,
+            list(new_row)
+          )
+        }
+      }
     }
-    
   }
-  
-  dt_region_content <- rbindlist(list_new_rows_dt_region_content,
-                                 use.names = TRUE,
-                                 fill = FALSE)
-  
-  return(list(euler_plots = euler_plots,
-              dt_region_content = dt_region_content))
+
+  dt_region_content <- data.table::rbindlist(
+    list_new_rows,
+    use.names = TRUE,
+    fill = FALSE
+  )
+
+  return(list(
+    euler_plots = euler_plots,
+    dt_region_content = dt_region_content
+  ))
 }
-
-

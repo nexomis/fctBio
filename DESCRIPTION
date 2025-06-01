@@ -45,6 +45,7 @@ VignetteBuilder: knitr, rmarkdown, kableExtra
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Collate: 
+    'globals.r'
     'fctBio.r'
     'utils.r'
     'class_NestedEnrich.r'

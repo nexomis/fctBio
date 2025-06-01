@@ -41,6 +41,12 @@ against different annotation backgrounds.
 \item \href{#method-NestedEnrich-plot_combined}{\code{NestedEnrich$plot_combined()}}
 \item \href{#method-NestedEnrich-count_gene_per_cluster}{\code{NestedEnrich$count_gene_per_cluster()}}
 \item \href{#method-NestedEnrich-build_cluster_summary_table}{\code{NestedEnrich$build_cluster_summary_table()}}
+\item \href{#method-NestedEnrich-get_filtering_params}{\code{NestedEnrich$get_filtering_params()}}
+\item \href{#method-NestedEnrich-get_clustering_params}{\code{NestedEnrich$get_clustering_params()}}
+\item \href{#method-NestedEnrich-get_classification_params}{\code{NestedEnrich$get_classification_params()}}
+\item \href{#method-NestedEnrich-is_filtered}{\code{NestedEnrich$is_filtered()}}
+\item \href{#method-NestedEnrich-is_clustered}{\code{NestedEnrich$is_clustered()}}
+\item \href{#method-NestedEnrich-is_classified}{\code{NestedEnrich$is_classified()}}
 \item \href{#method-NestedEnrich-write_xlsx}{\code{NestedEnrich$write_xlsx()}}
 \item \href{#method-NestedEnrich-clone}{\code{NestedEnrich$clone()}}
 }
@@ -83,7 +89,8 @@ specified parameters.
 group, and type. Each row should correspond to a unique analysis context,
 containing a nested dataframe of gene identifiers.
 \itemize{
-\item \code{batch}: First level of grouping, specifies the batch context of the gene list.
+\item \code{batch}: First level of grouping, specifies the batch context of the gene
+list.
 \item \code{group}: Second level of grouping, specifies the group context.
 \item \code{type}: Third level of grouping, specifies the type context.
 \item \code{data}: Column name containing the nested dataframe with gene identifiers;
@@ -95,39 +102,49 @@ must match the \code{data_col} argument.
 \item{\code{ann_space}}{Annotation space data loaded from \code{load_ann_space}, defining
 the annotation context for enrichment analysis.}
 
-\item{\code{batch_col}}{Optional; specifies the column name for batch if different from 'batch'.}
+\item{\code{batch_col}}{Optional; specifies the column name for batch if different from
+'batch'.}
 
-\item{\code{group_col}}{Optional; specifies the column name for group if different from 'group'.}
+\item{\code{group_col}}{Optional; specifies the column name for group if different from
+'group'.}
 
 \item{\code{type_col}}{Optional; specifies the column name for type.}
 
-\item{\code{batch_labels}}{Optional; specifies labels for batches if renaming is required.}
+\item{\code{batch_labels}}{Optional; specifies labels for batches if renaming is
+required.}
 
 \item{\code{group_labels}}{Optional; specifies labels for groups if renaming is required.}
 
 \item{\code{data_col}}{Name of the column in \code{nested_df} containing gene data.}
 
-\item{\code{data_univ_col}}{Optional; name of the column containing the universe of genes.}
+\item{\code{data_univ_col}}{Optional; name of the column containing the universe of
+genes.}
 
-\item{\code{data_nested_id}}{Column identifier in the nested data frames for gene identifiers.}
+\item{\code{data_nested_id}}{Column identifier in the nested data frames for gene
+identifiers.}
 
-\item{\code{regex}}{Regular expression to clean gene identifiers (e.g., to remove version numbers).}
+\item{\code{regex}}{Regular expression to clean gene identifiers (e.g., to remove
+version numbers).}
 
-\item{\code{lim_pmin}}{Minimum p-value threshold; gene sets below this threshold are not retained
+\item{\code{lim_pmin}}{Minimum p-value threshold; gene sets below this threshold
+are not retained
 unless \code{hard_pmin_filter} is set to FALSE.}
 
-\item{\code{classic}}{Boolean; if TRUE, performs analysis relative to the universe of genes.}
+\item{\code{classic}}{Boolean; if TRUE, performs analysis relative to the universe
+of genes.}
 
 \item{\code{log_level}}{Logging level as defined by the logging package.}
 
-\item{\code{hard_pmin_filter}}{Boolean; if TRUE, removes gene sets with p-values below \code{lim_pmin}.}
+\item{\code{hard_pmin_filter}}{Boolean; if TRUE, removes gene sets with p-values
+below \code{lim_pmin}.}
 
 \item{\code{...}}{Additional arguments passed to the \code{enrich} function.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new \code{NestedEnrich} object initialized with the provided data and settings.
+A new \code{NestedEnrich} object initialized with the provided data and
+settings.
 }
 }
 \if{html}{\out{<hr>}}
@@ -254,7 +271,7 @@ filter results based on pvalue and set significant results
   build_and_set_i_matrix = TRUE,
   build_and_set_p_matrix = FALSE,
   build_and_set_hclust = TRUE,
-  min_signif_term_for_clust = 10
+  min_signif_term_for_clust = 10L
 )}\if{html}{\out{</div>}}
 }
 
@@ -381,7 +398,7 @@ Methods are available to modify these defaults.
   method_dist = "jaccard",
   method_hclust = "ward.D2",
   using_pvclust = FALSE,
-  dim_reduce = 6,
+  dim_reduce = 6L,
   matrix_type = "incidence",
   prcomp_args = list(),
   pval_fun = log10,
@@ -453,7 +470,7 @@ plot hierachical clustering of terms
 \if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$plot_hclust(
   cluster_rect = TRUE,
   rect_linetype = "solid",
-  rect_linewidth = 1,
+  rect_linewidth = 1L,
   ggdendro_args = list(),
   ...
 )}\if{html}{\out{</div>}}
@@ -488,8 +505,8 @@ cluster id. Finally, the orphan terms are given an additional id.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$cut_hclust_and_set_clusters(
   value,
-  min_size = 5,
-  max_size = 8,
+  min_size = 5L,
+  max_size = 8L,
   max_size_only_to_parents = TRUE,
   min_size_only_to_children = TRUE,
   filter_max_size_first = TRUE,
@@ -570,7 +587,7 @@ Prepare a translate dictionary with the different type of possible ids.
   to = "reduced_label_with_code",
   append_cluster_id = FALSE,
   append_sep = "#",
-  reduced_label_max_size = 40
+  reduced_label_max_size = 40L
 )}\if{html}{\out{</div>}}
 }
 
@@ -701,7 +718,7 @@ ggplot2 object
 \subsection{Method \code{plot_combined()}}{
 Combination of enrichment plots with p-value per lists and term sizes
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$plot_combined(rel_widths = c(6, 1), ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$plot_combined(rel_widths = c(6L, 1L), ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -779,9 +796,10 @@ other relevant term details.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{verbose}}{Boolean, if TRUE, column names in the returned table are more descriptive.
-The renaming adjusts column headers to be more human-readable and suitable for reports
-or presentations. Specific changes include:
+\item{\code{verbose}}{Boolean, if TRUE, column names in the returned table are more
+descriptive.
+The renaming adjusts column headers to be more human-readable and suitable
+for reports or presentations. Specific changes include:
 \itemize{
 \item "cluster" becomes "Cluster"
 \item "term" becomes "Term"
@@ -801,18 +819,100 @@ or presentations. Specific changes include:
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A tibble table containing a summary of the clusters with the following columns:
+A tibble table containing a summary of the clusters with the following
+columns:
 \itemize{
 \item \code{cluster}: Cluster identifier (numeric or character based on input data).
 \item \code{term}: Unique identifier for each term within a cluster.
 \item \code{name}: Descriptive name of the term.
 \item \code{ann_name}: Source database from which the term was derived.
 \item \code{Ngenes}: Count of genes associated with each term.
-\item \code{min_qval}: Minimum q-value observed within each cluster, reflecting the lowest
+\item \code{min_qval}: Minimum q-value observed within each cluster, reflecting the
+lowest
 adjusted p-value computed for terms within the cluster.
-\item Additional columns representing each combination of batch, group, and type, formatted
-as 'batch|group|type', each containing the q-value for the term within that context.
+\item Additional columns representing each combination of batch, group, and type,
+formatted
+as 'batch|group|type', each containing the q-value for the term within that
+context.
 }
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-get_filtering_params"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-get_filtering_params}{}}}
+\subsection{Method \code{get_filtering_params()}}{
+Get filtering parameters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$get_filtering_params()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+List of filtering parameters
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-get_clustering_params"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-get_clustering_params}{}}}
+\subsection{Method \code{get_clustering_params()}}{
+Get clustering parameters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$get_clustering_params()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+List of clustering parameters
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-get_classification_params"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-get_classification_params}{}}}
+\subsection{Method \code{get_classification_params()}}{
+Get classification parameters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$get_classification_params()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+List of classification parameters
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-is_filtered"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-is_filtered}{}}}
+\subsection{Method \code{is_filtered()}}{
+Check if filtering has been done
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$is_filtered()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Boolean indicating if filtering is complete
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-is_clustered"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-is_clustered}{}}}
+\subsection{Method \code{is_clustered()}}{
+Check if clustering has been done
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$is_clustered()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Boolean indicating if clustering is complete
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-is_classified"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-is_classified}{}}}
+\subsection{Method \code{is_classified()}}{
+Check if classification has been done
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$is_classified()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Boolean indicating if classification is complete
 }
 }
 \if{html}{\out{<hr>}}

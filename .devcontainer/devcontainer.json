@@ -1,0 +1,23 @@
+
+{
+	"name": "Ubuntu",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": { 
+			"VARIANT": "noble"
+		 }
+	},
+		
+	"remoteUser": "vscode",
+
+	"extensions": [
+		"saoudrizwan.claude-dev",
+		"streetsidesoftware.code-spell-checker",
+		"Continue.continue",
+		"REditorSupport.r",
+		"quarto.quarto",
+		"mechatroner.rainbow-csv",
+		"rdebugger.r-debugger"
+	]
+
+}

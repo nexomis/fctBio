@@ -1,4 +1,6 @@
 
+/_trash
+
 # ignore system-specific or IDE specific files
 .DS_Store
 fctBio.Rproj

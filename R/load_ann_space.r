@@ -4,30 +4,30 @@ NULL
 
 #' Load Annotation Space
 #'
-#' This function loads gene annotations from specified sources, such as 
+#' This function loads gene annotations from specified sources, such as
 #' databases or files, and processes them into a structured format suitable for
-#' further analysis. 
+#' further analysis.
 
-#' Annotations typically define the notion of "terms" which can represent 
-#' biological pathways, communities of genes in coexpression networks, or other 
-#' relevant biological groupings. These terms might be organized hierarchically 
-#' using directed acyclic graphs (DAGs) in systems like Gene Ontology or 
+#' Annotations typically define the notion of "terms" which can represent
+#' biological pathways, communities of genes in coexpression networks, or other
+#' relevant biological groupings. These terms might be organized hierarchically
+#' using directed acyclic graphs (DAGs) in systems like Gene Ontology or
 #' Reactome, allowing for the representation of complex biological
 #' relationships.
 #'
-#' @param ann_sources Named character vector with keys as database codes and 
-#' values as paths to tabular files containing annotations. 
+#' @param ann_sources Named character vector with keys as database codes and
+#' values as paths to tabular files containing annotations.
 #' Each file must include the following columns:
 #'   - `term`: Short identifier of the term.
 #'   - `genes`: Semicolon-separated list of gene identifiers associated with
 #'     each term.
-#'   - `type`: Character string defining the category of the term, e.g., 
+#'   - `type`: Character string defining the category of the term, e.g.,
 #'     Biological Process, Molecular Function, or Cellular Component in the
 #'     context of Gene Ontology.
 #'   - `name`: Descriptive name or long identifier of the term.
-#'   - `parents`: Comma-separated list of parent terms' identifiers, reflecting 
+#'   - `parents`: Comma-separated list of parent terms' identifiers, reflecting
 #'     the hierarchical structure in databases using DAGs to organize terms.
-#' @param ann_types Named character vector with keys as database codes and 
+#' @param ann_types Named character vector with keys as database codes and
 #' values specifying
 #' the types of terms to retain from the annotations. The default behavior is to
 #' keep all types. This parameter filters terms based on their `type` field.
@@ -52,9 +52,11 @@ NULL
 #'   - `ann_name`: Database code from which each term was sourced, aligning with
 #'     keys in `ann_sources`.
 #' @export
-load_ann_space <- function(ann_sources, ann_types, compute_parent_genes = TRUE,
-use_parents_union = TRUE) {
-  rbindlist(
+load_ann_space <- function(
+  ann_sources, ann_types, compute_parent_genes = TRUE,
+  use_parents_union = TRUE
+) {
+  data.table::rbindlist(
     lapply(
       names(ann_sources),
       function(ann_name_input) {
@@ -66,8 +68,9 @@ use_parents_union = TRUE) {
           type_keep <- NULL
         }
 
-        ann <- fread(file = ann_source, sep = "\t", header = TRUE,
-          stringsAsFactors = FALSE)
+        ann <- data.table::fread(file = ann_source, sep = "\t", header = TRUE,
+          stringsAsFactors = FALSE
+        )
 
         if (!is.null(type_keep)) {
           filtering_vector <- vapply(
@@ -77,7 +80,7 @@ use_parents_union = TRUE) {
                 stringr::str_split_1(x, ";") %fin% type_keep
               )
             },
-            FUN.VALUE = logical(1),
+            FUN.VALUE = logical(1L),
             USE.NAMES = FALSE
           )
           ann <- ann[filtering_vector]
@@ -89,25 +92,23 @@ use_parents_union = TRUE) {
         )]
 
         ann[,
-          ann_name := factor(ann_name_input, levels = names(ann_sources))]
+          ann_name := factor(ann_name_input, levels = names(ann_sources))
+        ]
         if (! "type" %in% names(ann)) {
           ann[, type := factor("")]
         }
 
         if (! compute_parent_genes) {
-          return(
-            ann[, c(
-              "term", "name", "genes", "parents", "type", "ann_name")]
-          )
+          rcols <- c("term", "name", "genes", "parents", "type", "ann_name")
         } else {
 
           ann[, parents := lapply(
             .SD[["parents"]],
             function(x) {
               if (x == "") {
-                return(character())
+                character()
               } else {
-                return(stringr::str_split_1(x, "[;,]{1}"))
+                stringr::str_split_1(x, "[;,]{1}")
               }
             }
           )]
@@ -139,11 +140,11 @@ use_parents_union = TRUE) {
             ]
           }
           ann[, temp := NULL]
-          return(
-            ann[, c("term", "name", "genes", "parents", "parent_genes",
-              "type", "ann_name")]
+          rcols <- c("term", "name", "genes", "parents", "parent_genes",
+            "type", "ann_name"
           )
         }
+        ann[, rcols]
       }
     )
   )

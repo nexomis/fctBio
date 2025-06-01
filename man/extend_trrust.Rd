@@ -2,47 +2,79 @@
 % Please edit documentation in R/sysbio_genes.r
 \name{extend_trrust}
 \alias{extend_trrust}
-\title{Extend a list of genes by adding linked transcription factors (TFs) and/or target genes.}
+\title{Extend Gene List Using TRRUST Database}
 \usage{
 extend_trrust(
+  input_genes,
   trrust_db = system.file("extdata/human_network_annotations/trrust/data.tab", package =
     "fctBio"),
-  input_genes,
-  add_tf = TRUE,
-  add_target = TRUE,
-  keep_input_without_hit = TRUE,
-  ignore_single_pmid = FALSE,
-  detailled_output = FALSE
-)
-}
-\arguments{
-\item{trrust_db}{Path to the TRRUST database in tsv format.}
-
-\item{input_genes}{A character vector of input genes.}
-
-\item{add_tf}{Logical, whether to add transcription factors regulating the input genes (keeping 'tf' already present in input genes).}
-
-\item{add_target}{Logical, whether to add target genes regulated by the input genes (keeping 'target' already present in input genes).}
-
-\item{keep_input_without_hit}{Logical, whether to keep all input genes (including 'tf', 'target' and unannotated gene).}
-
-\item{ignore_single_pmid}{Logical, whether to ignore relations supported by only one PMID reference.}
-
-\item{detailled_output}{\link{not implemented} To return in addition of vector of gene names, a dataframe with relation of each genes pairs.}
-}
-\value{
-A character vector of extended genes.
-}
-\description{
-Extend a list of genes by adding linked transcription factors (TFs) and/or target genes.
-}
-\examples{
-extended_genes <- extend_trrust(
-  trrust_db = "path/to/trrust_rawdata.human.tsv",
-  input_genes = c("BAX", "MYC", "TP53"),
   add_tf = TRUE,
   add_target = TRUE,
   keep_input_without_hit = TRUE,
   ignore_single_pmid = FALSE
+)
+}
+\arguments{
+\item{input_genes}{A character vector of input gene symbols to extend.}
+
+\item{trrust_db}{A character string specifying the path to the TRRUST database
+in TSV format. Defaults to the package's internal TRRUST data file.}
+
+\item{add_tf}{Logical; whether to add transcription factors that regulate
+the input genes. When \code{TRUE}, includes TFs that have the input genes as targets,
+while preserving any input genes that are already TFs in the database.
+Default is \code{TRUE}.}
+
+\item{add_target}{Logical; whether to add target genes that are regulated
+by the input genes. When \code{TRUE}, includes targets of input genes that act as TFs,
+while preserving any input genes that are already targets in the database.
+Default is \code{TRUE}.}
+
+\item{keep_input_without_hit}{Logical; whether to retain input genes that
+have no regulatory relationships in the database (neither as TFs nor as targets).
+Default is \code{TRUE}.}
+
+\item{ignore_single_pmid}{Logical; whether to exclude regulatory relationships
+that are supported by only one PubMed ID reference. When \code{TRUE}, only
+relationships with multiple literature references are considered. Default is \code{FALSE}.}
+}
+\value{
+A character vector of unique gene symbols representing the extended
+gene list. The returned genes include the original input genes (if
+\code{keep_input_without_hit} is \code{TRUE}) plus any additional TFs and/or targets
+based on the specified parameters.
+}
+\description{
+\code{extend_trrust} extends a list of input genes by adding linked transcription
+factors (TFs) and/or target genes based on the TRRUST database. This function
+allows for flexible gene network expansion by including regulatory relationships
+from the TRRUST (Transcriptional Regulatory Relationships Unraveled by
+Sentence-based Text mining) database.
+
+The function can selectively add transcription factors that regulate the input
+genes and/or target genes that are regulated by the input genes. It also
+provides options to filter relationships based on literature support and to
+retain input genes that have no regulatory relationships in the database.
+}
+\examples{
+# Basic usage with default parameters
+extended_genes <- extend_trrust(
+  input_genes = c("BAX", "MYC", "TP53")
+)
+
+# Add only transcription factors, exclude single PMID relationships
+tf_extended <- extend_trrust(
+  input_genes = c("BAX", "MYC", "TP53"),
+  add_tf = TRUE,
+  add_target = FALSE,
+  ignore_single_pmid = TRUE
+)
+
+# Add only targets, don't keep input genes without hits
+target_extended <- extend_trrust(
+  input_genes = c("BAX", "MYC", "TP53"),
+  add_tf = FALSE,
+  add_target = TRUE,
+  keep_input_without_hit = FALSE
 )
 }

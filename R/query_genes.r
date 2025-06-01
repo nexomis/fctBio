@@ -1,3 +1,4 @@
+#' @include aaa.r
 #' @include utils.r
 
 NULL
@@ -15,7 +16,7 @@ NULL
 #' @param nested_df A nested tibble as returned by the `get_results` method of the
 #' `NestedEnrich` class, with `verbose = TRUE` to ensure descriptive column
 #' names which facilitate easier querying.
-#' @param filter_name A character string specifying the attribute to filter on. 
+#' @param filter_name A character string specifying the attribute to filter on.
 #' Supported filters include:
 #'   - `batch`: Select genes present in specified batch(es).
 #'   - `batch_label`: Select genes based on batch label(s).
@@ -25,18 +26,21 @@ NULL
 #'   - `term_id`: Select genes associated with a specific term ID(s).
 #'   - `term_name`: Select genes associated with a specific term name(s).
 #'   - `cluster`: Select genes associated with a specific cluster(s).
-#'   - `intra_occurences`: Select genes based on their minimal occurrences within the same term.
-#'   - `extra_occurences`: Select genes based on their minimal occurrences across all terms.
-#'   - `cluster_occurences`: Select genes based on their minimal occurrences within specified clusters.
-#' @param value The value(s) to filter by, corresponding to the `filter_name`. 
+#'   - `intra_occurences`: Select genes based on their minimal occurrences within
+#'     the same term.
+#'   - `extra_occurences`: Select genes based on their minimal occurrences across
+#'     all terms.
+#'   - `cluster_occurences`: Select genes based on their minimal occurrences within
+#'     specified clusters.
+#' @param value The value(s) to filter by, corresponding to the `filter_name`.
 #' This can be a single value or a vector of values depending on the filter context.
 #' @param genes_per_clusters Optional but required for xxx_occurrences filters
-#' a data frame from the `count_gene_per_cluster`#' method in the `NestedEnrich` 
+#' a data frame from the `count_gene_per_cluster`#' method in the `NestedEnrich`
 #' class, which includes gene occurrence data across clusters.
-#' @param batch_labels Optional; a vector of batch labels if `batch_label` filter is used.
-#' This helps map user-friendly labels to batch identifiers in the dataset.
-#' @param group_labels Optional; a vector of group labels if `group_label` filter is used.
-#' This helps map user-friendly labels to group identifiers in the dataset.
+#' @param batch_labels Optional; a vector of batch labels if `batch_label` filter
+#' is used. This helps map user-friendly labels to batch identifiers in the dataset.
+#' @param group_labels Optional; a vector of group labels if `group_label` filter
+#' is used. This helps map user-friendly labels to group identifiers in the dataset.
 #'
 #' @return A character vector with gene IDs
 #'
@@ -44,7 +48,9 @@ NULL
 #' @examples
 #' # Assuming `nested_df` is a dataset obtained from NestedEnrich with verbose = TRUE
 #' genes_in_batch1 <- query_genes(nested_df, filter_name = "batch", value = "batch1")
-#' genes_in_termGO <- query_genes(nested_df, filter_name = "term_id", value = "GO:XXXXXX")
+#' genes_in_termGO <- query_genes(
+#'   nested_df, filter_name = "term_id", value = "GO:XXXXXX"
+#' )
 #' genes_by_occurrence <- query_genes(nested_df, filter_name = "cluster_occurences",
 #'                                    value = 5, genes_per_clusters = genes_cluster_data)
 query_genes <- function(nested_df, filter_name, value,
@@ -52,19 +58,23 @@ query_genes <- function(nested_df, filter_name, value,
   batch_labels = NULL, group_labels = NULL
 ) {
 
-  if (! all(value %in% query_genes_choices(nested_df, filter_name,
-  genes_per_clusters, batch_labels, group_labels))) {
-    warning("value not a valid choice")
+  if (! all(
+    value %in% query_genes_choices(
+      nested_df, filter_name,
+      genes_per_clusters, batch_labels, group_labels
+    )
+  )) {
+    warning("value not a valid choice", call. = FALSE)
   }
 
   if (filter_name == "batch_label" && is.null(batch_labels)) {
-    warning("filtering batch_label without label dict")
+    warning("filtering batch_label without label dict", call. = FALSE)
     batch_labels <- query_genes_choices(nested_df, filter_name)
     names(batch_labels) <- batch_labels
   }
 
   if (filter_name == "group_label" && is.null(group_labels)) {
-    warning("filtering group_label without label dict")
+    warning("filtering group_label without label dict", call. = FALSE)
     group_labels <- query_genes_choices(nested_df, filter_name)
     names(group_labels) <- group_labels
   }
@@ -119,7 +129,9 @@ query_genes <- function(nested_df, filter_name, value,
       } else {
         choices <- unique(
           genes_per_clusters[
-            as.integer(cluster) %in% as.integer(value)][["gene"]])
+            as.integer(cluster) %in% as.integer(value)
+          ][["gene"]]
+        )
       }
       choices
     },
@@ -128,7 +140,8 @@ query_genes <- function(nested_df, filter_name, value,
         choices <- integer()
       } else {
         choices <- unique(
-          genes_per_clusters[intra_x_term >= value][["gene"]])
+          genes_per_clusters[intra_x_term >= value][["gene"]]
+        )
       }
       choices
     },
@@ -137,7 +150,8 @@ query_genes <- function(nested_df, filter_name, value,
         choices <- integer()
       } else {
         choices <- unique(
-          genes_per_clusters[extra_x_term >= value][["gene"]])
+          genes_per_clusters[extra_x_term >= value][["gene"]]
+        )
       }
       choices
     },
@@ -146,7 +160,8 @@ query_genes <- function(nested_df, filter_name, value,
         choices <- integer()
       } else {
         choices <- unique(
-          genes_per_clusters[x_cluster >= value][["gene"]])
+          genes_per_clusters[x_cluster >= value][["gene"]]
+        )
       }
       choices
     }
@@ -236,7 +251,7 @@ query_genes_choices <- function(nested_df, filter_name,
       if (is.null(genes_per_clusters)) {
         choices <- integer()
       } else {
-        choices <- seq(0,max(genes_per_clusters[["intra_x_term"]]))
+        choices <- seq(0L, max(genes_per_clusters[["intra_x_term"]]))
       }
       choices
     },
@@ -244,7 +259,7 @@ query_genes_choices <- function(nested_df, filter_name,
       if (is.null(genes_per_clusters)) {
         choices <- integer()
       } else {
-        choices <- seq(0, max(genes_per_clusters[["extra_x_term"]]))
+        choices <- seq(0L, max(genes_per_clusters[["extra_x_term"]]))
       }
       choices
     },
@@ -252,7 +267,7 @@ query_genes_choices <- function(nested_df, filter_name,
       if (is.null(genes_per_clusters)) {
         choices <- integer()
       } else {
-        choices <- seq(0, max(genes_per_clusters[["x_cluster"]]))
+        choices <- seq(0L, max(genes_per_clusters[["x_cluster"]]))
       }
       choices
     }

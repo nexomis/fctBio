@@ -28,20 +28,23 @@ Supported filters include:
 \item \code{term_id}: Select genes associated with a specific term ID(s).
 \item \code{term_name}: Select genes associated with a specific term name(s).
 \item \code{cluster}: Select genes associated with a specific cluster(s).
-\item \code{intra_occurences}: Select genes based on their minimal occurrences within the same term.
-\item \code{extra_occurences}: Select genes based on their minimal occurrences across all terms.
-\item \code{cluster_occurences}: Select genes based on their minimal occurrences within specified clusters.
+\item \code{intra_occurences}: Select genes based on their minimal occurrences within
+the same term.
+\item \code{extra_occurences}: Select genes based on their minimal occurrences across
+all terms.
+\item \code{cluster_occurences}: Select genes based on their minimal occurrences within
+specified clusters.
 }}
 
 \item{genes_per_clusters}{Optional but required for xxx_occurrences filters
 a data frame from the \code{count_gene_per_cluster}#' method in the \code{NestedEnrich}
 class, which includes gene occurrence data across clusters.}
 
-\item{batch_labels}{Optional; a vector of batch labels if \code{batch_label} filter is used.
-This helps map user-friendly labels to batch identifiers in the dataset.}
+\item{batch_labels}{Optional; a vector of batch labels if \code{batch_label} filter
+is used. This helps map user-friendly labels to batch identifiers in the dataset.}
 
-\item{group_labels}{Optional; a vector of group labels if \code{group_label} filter is used.
-This helps map user-friendly labels to group identifiers in the dataset.}
+\item{group_labels}{Optional; a vector of group labels if \code{group_label} filter
+is used. This helps map user-friendly labels to group identifiers in the dataset.}
 }
 \value{
 A vector of unique values corresponding to the specified \code{filter_name},

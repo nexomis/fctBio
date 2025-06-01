@@ -2,7 +2,7 @@
 % Please edit documentation in R/venn_genes.r
 \name{compute_euler_plot}
 \alias{compute_euler_plot}
-\title{Compute and draw euleur plot based on significant DEG table}
+\title{Compute and Draw Euler Plot from DEG Table}
 \usage{
 compute_euler_plot(
   deg_table_in,
@@ -19,65 +19,75 @@ compute_euler_plot(
 )
 }
 \arguments{
-\item{deg_table_in}{Recquired. dt with significant results: results of \code{data.table(deseq_pred$cross_args_and_generate_lists())}. (Note: differente, pvalue, log_FC and deregulaton type has been managed separatly !). Note: the “type” column should not contain “NA”, otherwise false warnings that some 'to_keep' or 'ext_group' groups/batches will be incorrectly issued. 'group' and 'abtch' must not contains '&'.}
+\item{deg_table_in}{A data.table with significant DEG results. Must contain
+columns: batch, group, type, lfc_abs_lim, min_signif, and data (containing
+uniprot IDs). The 'type' column should not contain NA values. Group and
+batch names must not contain '&' characters.}
 
-\item{min_to_displayed_threshold}{(default: '0.01') Minimal values displayed. If <1: in proportion of universe (sum of all sets lengths (with redondancy) - including potentials ext_groups).}
+\item{min_to_displayed_threshold}{Numeric; minimal values to display on plots.
+If less than 1, interpreted as proportion of universe. Default is 0.01.}
 
-\item{to_keep}{(default: NULL) dt or df with 2 column: 'batch' and 'group'. If 'NULL', no filter, keep all data. Impact inter AND intra batch comparison but no impact 'ext_group'.}
+\item{to_keep}{A data.table or data.frame with columns 'batch' and 'group'
+to filter the analysis. If NULL, all data is kept. Default is NULL.}
 
-\item{ext_groups}{(default: NULL) list of uniprot ids used as ext_group (list or vector). If table (dt or df with 2 column: 'batch' and 'group') determine the gene list from 'deg_table_in' (before filtering using 'to_keep' and considering appropriate 'type', 'lfc' and 'pval'). If 'NULL', no external set. Used for inter AND intra batche comparison.}
+\item{ext_groups}{External groups to include in the analysis. Can be:
+a list/vector of UniProt IDs, or a data.table/data.frame with 'batch' and
+'group' columns. Default is NULL.}
 
-\item{mode_ext_groups}{(default: 'union') Used only if 'ext_groups' is table. Must be 'individual', 'union' or 'intersect'.}
+\item{mode_ext_groups}{Character; mode for external groups when ext_groups
+is a table. Must be "individual", "union", or "intersect". Default is "union".}
 
-\item{inter_batch}{(default: NULL) list of named list with batch to compare together. If NULL, and 'mode_inter_batch' not NULL, include all batche. Performed independantly for each 'type', 'pval' and 'lfc'. Names must not contains '&'.}
+\item{inter_batch}{A named list specifying batches to compare for inter-batch
+analysis. If NULL and mode_inter_batch is not NULL, includes all batches.
+Default is NULL.}
 
-\item{mode_inter_batch}{(default: NULL) list of named list (same name as 'inter_batch') specifying mode of selection of deg to each batch for each inter-batch comparison ('union' or 'intersect'). If 'NULL', no Inter-batch comparison.}
+\item{mode_inter_batch}{A named list specifying the mode ("union" or "intersect")
+for each inter-batch comparison. If NULL, no inter-batch comparison is performed.
+Default is NULL.}
 
-\item{shape}{(default: 'ellipse') euler diagram shape.}
+\item{shape}{Character; shape for Euler diagrams. Default is "ellipse".}
 
-\item{sort_group_for_region_naming}{(default=TRUE) Alphanumerically sorts the names of the groups composing each region into the name of the region, or concervates the order of the various groups in the batch in question as in the initial input}
+\item{sort_group_for_region_naming}{Logical; whether to sort group names
+alphabetically in region names. Default is TRUE.}
 
-\item{path_dir_to_save_plot}{(default: NULL) directory path where save individual euler diagram on separate pdf. If 'NULL', no saving.}
+\item{path_dir_to_save_plot}{Character; directory path to save individual
+plots as PDF files. If NULL, plots are not saved. Default is NULL.}
 
-\item{dict_uniprot_to_symbol}{(default: NULL) used to reconstitude column 'symbol' of table in 'data' of each result if 'symbol' column is already present in 'deg_table_in' input (if 'symbol column not in input table, this parameters will be ignored). If NULL, reconstructed from input table.}
+\item{dict_uniprot_to_symbol}{Named character vector mapping UniProt IDs
+to gene symbols. If NULL and 'symbol' column exists in input data, it will
+be reconstructed from the input table. Default is NULL.}
 }
 \value{
-This function return as first element a list of eullerr plots object ('$euler_plot') and as second element a data.table with specific content of each region on format of 'deg_table_in' ('$dt_region_content').
+A list with two elements:
+\describe{
+\item{euler_plots}{A list of Euler plot objects}
+\item{dt_region_content}{A data.table with specific content of each region
+in the same format as the input deg_table_in}
+}
 }
 \description{
-Computed at uniprot level ! 'NA' value has been ignored. (quid of multiple uniprot_id for a single gene_symbol ?!?!?!)
+Computes and draws Euler plots based on significant differential expression
+gene (DEG) tables. The analysis is performed at the UniProt level, with
+NA values ignored. The function supports both intra-batch and inter-batch
+comparisons with various customization options.
 }
 \details{
-Comparison is performed using uniprot ids.
-
-TODO:
-\itemize{
-\item in option management of up/down. Although this is already possible in the current state of development by transforming deg_table upstream, it would be a good idea to add the following 2 options)
-\itemize{
-\item summarize analyse: merge up and down on single analyse (after prefixing genes by their status "up_"/"down_")
-\item very interesting analyse: venn with up and down in same plot on disctinct sets to highlight swtched genes !
-}
-\item ext_groups:
-\itemize{
-\item add possibility to put mutliple specific gene list as vector (with mode: union, individual, intersect)
-\item add option to use ext group at inter AND/OR intra batche comparison (actually one sigle group used for both)
-}
-\item plot:
-\itemize{
-\item put all venn diagram on same pdf using output/append on new page option !
-\item manage tittle parameters
-}
-\item reduce time running: don't perform independantly euleurr plot ! use already computed intersection to put stats to eulleur diagram
-}
+The comparison is performed using UniProt IDs. The function handles both
+intra-batch comparisons (comparing groups within the same batch) and
+inter-batch comparisons (comparing batches across different conditions).
 }
 \examples{
-Example usage
+\dontrun{
+# Basic usage
+result <- compute_euler_plot(deg_table)
 
-compute_euler_plot(deg_table = data.table(deseq_pred$cross_args_and_generate_lists(
-                                            cross_type = c("deregulated"),
-                                            cross_lfc_abs_lim = c(LFC_threshold),
-                                            cross_min_signif = c(pvaladj_threshold)
-                                         )
-                  )
-                  
+# With filtering and external groups
+result <- compute_euler_plot(
+  deg_table_in = my_deg_table,
+  to_keep = data.table(batch = "B1", group = c("G1", "G2")),
+  ext_groups = c("P12345", "P67890"),
+  path_dir_to_save_plot = "plots/"
+)
+}
+
 }

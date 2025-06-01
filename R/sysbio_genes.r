@@ -1,114 +1,135 @@
-# TODO : default comportement more basic (same as web interface).
-#        define this function in 2 distinct step by 2 function.
-#        First in order to create 5 vectors (saved in 5 collumn of one dataframe in order to facilate junction and comparison) :
-#          3 about input (tf, target, na) and 2 about db request (tf, target).
-#        And a second function in order to manae output result from user option settings.
-#
-#        Finaaly, in future, a last function must be create in order to summarize all db request function sysbio in a single.
-#        In this order, it is more easy if variable name is universal.
-#        PS: detailled output isn't usefull
+#' @include aaa.r
+#' @include utils.r
 
+NULL
 
-
-#' Extend a list of genes by adding linked transcription factors (TFs) and/or target genes.
+#' Extend Gene List Using TRRUST Database
 #'
-#' @param trrust_db Path to the TRRUST database in tsv format.
-#' @param input_genes A character vector of input genes.
-#' @param add_tf Logical, whether to add transcription factors regulating the input genes (keeping 'tf' already present in input genes).
-#' @param add_target Logical, whether to add target genes regulated by the input genes (keeping 'target' already present in input genes).
-#' @param keep_input_without_hit Logical, whether to keep all input genes (including 'tf', 'target' and unannotated gene).
-#' @param ignore_single_pmid Logical, whether to ignore relations supported by only one PMID reference.
-#' @param detailled_output [not implemented] To return in addition of vector of gene names, a dataframe with relation of each genes pairs.
-#' @return A character vector of extended genes.
+#' @description
+#' `extend_trrust` extends a list of input genes by adding linked transcription
+#' factors (TFs) and/or target genes based on the TRRUST database. This function
+#' allows for flexible gene network expansion by including regulatory relationships
+#' from the TRRUST (Transcriptional Regulatory Relationships Unraveled by
+#' Sentence-based Text mining) database.
+#'
+#' The function can selectively add transcription factors that regulate the input
+#' genes and/or target genes that are regulated by the input genes. It also
+#' provides options to filter relationships based on literature support and to
+#' retain input genes that have no regulatory relationships in the database.
+#'
+#' @param trrust_db A character string specifying the path to the TRRUST database
+#' in TSV format. Defaults to the package's internal TRRUST data file.
+#' @param input_genes A character vector of input gene symbols to extend.
+#' @param add_tf Logical; whether to add transcription factors that regulate
+#' the input genes. When `TRUE`, includes TFs that have the input genes as targets,
+#' while preserving any input genes that are already TFs in the database.
+#' Default is `TRUE`.
+#' @param add_target Logical; whether to add target genes that are regulated
+#' by the input genes. When `TRUE`, includes targets of input genes that act as TFs,
+#' while preserving any input genes that are already targets in the database.
+#' Default is `TRUE`.
+#' @param keep_input_without_hit Logical; whether to retain input genes that
+#' have no regulatory relationships in the database (neither as TFs nor as targets).
+#' Default is `TRUE`.
+#' @param ignore_single_pmid Logical; whether to exclude regulatory relationships
+#' that are supported by only one PubMed ID reference. When `TRUE`, only
+#' relationships with multiple literature references are considered. Default is `FALSE`.
+#'
+#' @return A character vector of unique gene symbols representing the extended
+#' gene list. The returned genes include the original input genes (if
+#' `keep_input_without_hit` is `TRUE`) plus any additional TFs and/or targets
+#' based on the specified parameters.
+#'
+#' @export
 #' @examples
+#' # Basic usage with default parameters
 #' extended_genes <- extend_trrust(
-#'   trrust_db = "path/to/trrust_rawdata.human.tsv",
+#'   input_genes = c("BAX", "MYC", "TP53")
+#' )
+#'
+#' # Add only transcription factors, exclude single PMID relationships
+#' tf_extended <- extend_trrust(
 #'   input_genes = c("BAX", "MYC", "TP53"),
 #'   add_tf = TRUE,
-#'   add_target = TRUE,
-#'   keep_input_without_hit = TRUE,
-#'   ignore_single_pmid = FALSE
+#'   add_target = FALSE,
+#'   ignore_single_pmid = TRUE
 #' )
-#' @export
-extend_trrust <- function(trrust_db = system.file("extdata/human_network_annotations/trrust/data.tab", package = "fctBio"),
-                          input_genes,
-                          add_tf = TRUE,
-                          add_target = TRUE,
-                          keep_input_without_hit = TRUE,
-                          ignore_single_pmid = FALSE,
-                          detailled_output = FALSE) {
-  
-  # Load TRRUST database from tsv file and if specified, exclude relation supported by only 1 PMID reference
-  trrust_data <- read.delim(trrust_db, header = TRUE)
-  if (ignore_single_pmid) {
-    trrust_data$PMID_count <- sapply(strsplit(as.character(trrust_data$ref_PMID), ";"), length)
-    trrust_data_filtered <- subset(trrust_data, PMID_count > 1)
-    trrust_data_filtered$PMID_count <- NULL
+#'
+#' # Add only targets, don't keep input genes without hits
+#' target_extended <- extend_trrust(
+#'   input_genes = c("BAX", "MYC", "TP53"),
+#'   add_tf = FALSE,
+#'   add_target = TRUE,
+#'   keep_input_without_hit = FALSE
+#' )
+extend_trrust <- function(
+  input_genes,
+  trrust_db = system.file(
+    "extdata/human_network_annotations/trrust/data.tab", package = "fctBio"
+  ),
+  add_tf = TRUE,
+  add_target = TRUE,
+  keep_input_without_hit = TRUE,
+  ignore_single_pmid = FALSE
+) {
+
+  # Input validation
+  if (missing(input_genes) || length(input_genes) == 0L) {
+    stop("input_genes must be provided and non-empty", call. = FALSE)
   }
-  else {
+
+  if (!file.exists(trrust_db)) {
+    stop("TRRUST database file not found: ", trrust_db, call. = FALSE)
+  }
+
+  # Load TRRUST database
+  trrust_data <- read.delim(trrust_db, header = TRUE, stringsAsFactors = FALSE)
+
+  # Filter by PMID count if requested
+  if (ignore_single_pmid) {
+    trrust_data$pmid_count <- vapply(
+      strsplit(as.character(trrust_data$ref_PMID), ";"),
+      length,
+      integer(1L)
+    )
+    trrust_data_filtered <- trrust_data[trrust_data$pmid_count > 1L, ]
+    trrust_data_filtered$pmid_count <- NULL
+  } else {
     trrust_data_filtered <- trrust_data
   }
-  
-  # Force keeping of original input genes
-  results <- if (keep_input_without_hit) input_genes else character(0)
-  
+
+  # Initialize results with input genes if requested
+  results <- if (keep_input_without_hit) input_genes else character(0L)
+
   # Add transcription factors regulating the input genes
   if (add_tf) {
-    tf_regulating_input <- unique(trrust_data_filtered[trrust_data_filtered$target %in% input_genes, ]$tf)
-    tf_in_input <- unique(trrust_data[trrust_data$tf %in% input_genes, ]$tf)
-    results <- unique(append(results, c(tf_regulating_input, tf_in_input)))
+    # TFs that regulate input genes (input genes as targets)
+    tf_regulating_input <- unique(
+      trrust_data_filtered[trrust_data_filtered$target %in% input_genes, "tf"]
+    )
+
+    # Input genes that are TFs in the database
+    tf_in_input <- unique(
+      trrust_data[trrust_data$tf %in% input_genes, "tf"]
+    )
+
+    results <- unique(c(results, tf_regulating_input, tf_in_input))
   }
-  
+
   # Add target genes regulated by the input genes
   if (add_target) {
-    target_under_input <- unique(trrust_data_filtered[trrust_data_filtered$tf %in% input_genes, ]$target)
-    target_in_input <- unique(trrust_data[trrust_data$target %in% input_genes, ]$target)
-    results <- unique(append(results, c(target_under_input, target_in_input)))
+    # Targets regulated by input genes (input genes as TFs)
+    target_under_input <- unique(
+      trrust_data_filtered[trrust_data_filtered$tf %in% input_genes, "target"]
+    )
+
+    # Input genes that are targets in the database
+    target_in_input <- unique(
+      trrust_data[trrust_data$target %in% input_genes, "target"]
+    )
+
+    results <- unique(c(results, target_under_input, target_in_input))
   }
-  
+
   return(unique(results))
 }
-
-
-
-
-
-
-#### DRAFT: ressource to implement 'detailled_output' option for 'extend_network_trrust' function
-# # import DB from tab file
-# trrust_data <- read.delim("C:/Users/abdel/Downloads/trrust_rawdata.human.tsv", header = FALSE,
-#                           col.names = c("TranscriptionFactor", "TargetGene", "RegulationMode", "PMID"))
-# 
-# # exemple input genes
-# input_genes <- c("BAX", "MYC", "TP53")
-# 
-# ### Format 1
-# relations_as_targets <- trrust_data[trrust_data$TargetGene %in% input_genes, ]
-# relations_as_targets_df1 <- data.frame(Input_gn = relations_as_targets$TargetGene,
-#                                        Direction = "by",
-#                                        Pairs_gn = relations_as_targets$TranscriptionFactor,
-#                                        Mode = relations_as_targets$RegulationMode,
-#                                        Ref_PMID = relations_as_targets$PMID,
-#                                        stringsAsFactors = FALSE)
-# 
-# # add input genes without hit
-# no_relation_genes <- setdiff(input_genes, unique(relations_as_targets$TargetGene))
-# no_relation_df1 <- data.frame(Input_gn = no_relation_genes, Direction = "NA", Pairs_gn = "NA", Mode = "NA", Ref_PMID = "NA", stringsAsFactors = FALSE)
-# dataframe_1 <- rbind(relations_as_targets_df1, no_relation_df1)
-# 
-# ### Format 2
-# relations_as_tfs <- trrust_data[trrust_data$TranscriptionFactor %in% input_genes, ]
-# relations_as_tfs_df2 <- data.frame(Input_gn = relations_as_tfs$TranscriptionFactor,
-#                                    Type = "TF",
-#                                    TF_gn = relations_as_tfs$TranscriptionFactor,
-#                                    Target_gn = relations_as_tfs$TargetGene,
-#                                    RegulationMode = relations_as_tfs$RegulationMode,
-#                                    Ref_PMID = relations_as_tfs$PMID,
-#                                    stringsAsFactors = FALSE)
-# 
-# # add input genes without hit
-# no_relation_tfs <- setdiff(input_genes, unique(relations_as_tfs$TranscriptionFactor))
-# no_relation_df2 <- data.frame(Input_gn = no_relation_tfs, Type = "NA", TF_gn = "NA", Target_gn = "NA", RegulationMode = "NA", Ref_PMID = "NA", stringsAsFactors = FALSE)
-# dataframe_2 <- rbind(relations_as_tfs_df2, no_relation_df2)
-# 
-# 

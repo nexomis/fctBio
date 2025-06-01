@@ -1,6 +1,6 @@
 #' fctBio: Objects and methods for functional biology analysis
 #'
-#' fctBio is a comprehensive R package designed to facilitate the functional 
+#' fctBio is a comprehensive R package designed to facilitate the functional
 #' analysis of biological data, particularly gene expression and enrichment
 #' studies. This tool offers a suite of methods and objects tailored for deep
 #' functional biology investigations, enabling researchers and analysts to

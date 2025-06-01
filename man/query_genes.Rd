@@ -29,9 +29,12 @@ Supported filters include:
 \item \code{term_id}: Select genes associated with a specific term ID(s).
 \item \code{term_name}: Select genes associated with a specific term name(s).
 \item \code{cluster}: Select genes associated with a specific cluster(s).
-\item \code{intra_occurences}: Select genes based on their minimal occurrences within the same term.
-\item \code{extra_occurences}: Select genes based on their minimal occurrences across all terms.
-\item \code{cluster_occurences}: Select genes based on their minimal occurrences within specified clusters.
+\item \code{intra_occurences}: Select genes based on their minimal occurrences within
+the same term.
+\item \code{extra_occurences}: Select genes based on their minimal occurrences across
+all terms.
+\item \code{cluster_occurences}: Select genes based on their minimal occurrences within
+specified clusters.
 }}
 
 \item{value}{The value(s) to filter by, corresponding to the \code{filter_name}.
@@ -41,11 +44,11 @@ This can be a single value or a vector of values depending on the filter context
 a data frame from the \code{count_gene_per_cluster}#' method in the \code{NestedEnrich}
 class, which includes gene occurrence data across clusters.}
 
-\item{batch_labels}{Optional; a vector of batch labels if \code{batch_label} filter is used.
-This helps map user-friendly labels to batch identifiers in the dataset.}
+\item{batch_labels}{Optional; a vector of batch labels if \code{batch_label} filter
+is used. This helps map user-friendly labels to batch identifiers in the dataset.}
 
-\item{group_labels}{Optional; a vector of group labels if \code{group_label} filter is used.
-This helps map user-friendly labels to group identifiers in the dataset.}
+\item{group_labels}{Optional; a vector of group labels if \code{group_label} filter
+is used. This helps map user-friendly labels to group identifiers in the dataset.}
 }
 \value{
 A character vector with gene IDs
@@ -61,7 +64,9 @@ class, particularly useful for further analysis or visualization.
 \examples{
 # Assuming `nested_df` is a dataset obtained from NestedEnrich with verbose = TRUE
 genes_in_batch1 <- query_genes(nested_df, filter_name = "batch", value = "batch1")
-genes_in_termGO <- query_genes(nested_df, filter_name = "term_id", value = "GO:XXXXXX")
+genes_in_termGO <- query_genes(
+  nested_df, filter_name = "term_id", value = "GO:XXXXXX"
+)
 genes_by_occurrence <- query_genes(nested_df, filter_name = "cluster_occurences",
                                    value = 5, genes_per_clusters = genes_cluster_data)
 }

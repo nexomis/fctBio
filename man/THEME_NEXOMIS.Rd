@@ -3,7 +3,7 @@
 \docType{data}
 \name{THEME_NEXOMIS}
 \alias{THEME_NEXOMIS}
-\title{ggplot2 theme}
+\title{fctBio ggplot2 theme}
 \format{
 An object of class \code{theme} (inherits from \code{gg}) of length 136.
 }

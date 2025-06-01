@@ -1,5 +1,6 @@
+#' @include fctBio.r
 #' @include utils.r
-
+#' @include aaa.r
 NULL
 
 #' Simple Gene Set Enrichment
@@ -9,13 +10,13 @@ NULL
 #' Multi-testing correction is performed using BH and Bonferroni
 #' methods for terms with a minimal p-value below 1e-4 by default. P-values
 #' are calculated using the hypergeometric test. This function is intended
-#' for internal use due to its reliance on integer IDs for genes and terms; 
+#' for internal use due to its reliance on integer IDs for genes and terms;
 #' later a new implementation may allow direct use of this function.
 #'
 #' @param gene_input Input gene list converted as an INTEGER vector.
 #' @param gene_universe Optional, Universe gene list as an INTEGER vector.
 #' @param ann Modified annotation table as returned from \link{load_ann_space}
-#' but with 
+#' but with
 #' @param lim_pmin Minimum value for pmin (lowest possible p-value).
 #'   This limit is used for filtering before p-value correction.
 #' @param regex Regex pattern to remove from gene name from input lists
@@ -27,30 +28,38 @@ NULL
 #'   (vs. parent-child method).
 #' @param log_level Logging level (see logging package). Default is WARN.
 #' @export
-enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
-  classic = FALSE, log_level = "WARN", hard_pmin_filter = TRUE) {
+enrich <- function(
+  gene_input,
+  ann,
+  gene_universe = NULL,
+  lim_pmin = 0.05,
+  classic = FALSE,
+  log_level = "WARN",
+  hard_pmin_filter = TRUE
+) {
 
   logging::basicConfig(level = log_level)
 
   logging::loginfo("Loading and filtering database based on type")
 
-  assertthat::assert_that(is.integer(gene_input))
-  assertthat::assert_that(all(! is.na(gene_input)))
+  assertthat::assert_that(
+    is.integer(gene_input),
+    all(! is.na(gene_input)),
+    data.table::is.data.table(ann),
+    all(purrr::map_lgl(ann$genes, is.integer)),
+    all(purrr::map_lgl(ann$genes, function(x) all(! is.na(x)))),
+    all(purrr::map_lgl(ann$parents, is.integer)),
+    all(purrr::map_lgl(ann$parents, function(x) all(! is.na(x)))),
+    is.integer(ann$term),
+    all(! is.na(ann$term))
+  )
+
   if (! is.null(gene_universe)) {
-    assertthat::assert_that(is.integer(gene_universe))
-    assertthat::assert_that(all(! is.na(gene_universe)))
+    assertthat::assert_that(
+      is.integer(gene_universe),
+      all(! is.na(gene_universe))
+    )
   }
-  assertthat::assert_that(data.table::is.data.table(ann))
-  assertthat::assert_that(
-    all(purrr::map_lgl(ann$genes, is.integer)))
-  assertthat::assert_that(
-    all(purrr::map_lgl(ann$genes, function(x) all(! is.na(x)))))
-  assertthat::assert_that(
-    all(purrr::map_lgl(ann$parents, is.integer)))
-  assertthat::assert_that(
-    all(purrr::map_lgl(ann$parents, function(x) all(! is.na(x)))))
-  assertthat::assert_that(is.integer(ann$term))
-  assertthat::assert_that(all(! is.na(ann$term)))
 
   lim_corr <- lim_pmin
 
@@ -92,13 +101,14 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
   gi <- sort(gi)
   universe <- sort(universe)
 
-  ann[, genes := lapply( #nolint
+  ann[, genes := lapply(
     ann$genes,
     function(x) x[x %fin% universe]
   )]
 
   logging::loginfo(
-    "Filtering database intesection with gene of interest based on universe")
+    "Filtering database intesection with gene of interest based on universe"
+  )
 
   ann$GI <- lapply(ann$genes, function(x) x[x %fin% gi])
 
@@ -109,9 +119,10 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 
   logging::loginfo("Denombring intersection at term level")
 
-  ann$NGI <- vapply(ann$GI, length, USE.NAMES = FALSE, FUN.VALUE = integer(1))
+  ann$NGI <- vapply(ann$GI, length, USE.NAMES = FALSE, FUN.VALUE = 1L)
   ann$Ngenes <- vapply(ann$genes, length, USE.NAMES = FALSE,
-    FUN.VALUE = integer(1))
+    FUN.VALUE = 1L
+  )
 
   logging::loginfo("Denombring intersection at parent level")
 
@@ -123,7 +134,7 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
     ann$parent_genes <- lapply(
       ann$parent_genes,
       function(x) {
-        if (length(x) > 0) {
+        if (length(x) > 0L) {
           x[x %fin% universe]
         } else {
           universe
@@ -137,9 +148,11 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
     )
 
     ann$parent_NGI <- vapply(ann$parent_GI, length, USE.NAMES = FALSE,
-      FUN.VALUE = integer(1))
+      FUN.VALUE = 1L
+    )
     ann$parent_Ngenes <- vapply(ann$parent_genes, length, USE.NAMES = FALSE,
-      FUN.VALUE = integer(1))
+      FUN.VALUE = 1L
+    )
 
     ann[parent_Ngenes == 0, parent_Ngenes := n] #nolint
 
@@ -150,7 +163,7 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 
   get_pval_fisher <- function(n_genes, n_gi, parent_n_genes, parent_n_gi) {
     phyper(
-      n_gi - 1,
+      n_gi - 1L,
       parent_n_gi,
       parent_n_genes - parent_n_gi,
       n_genes,
@@ -161,7 +174,8 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 
   get_pmin <- function(n_genes, parent_n_genes, parent_n_gi) {
     get_pval_fisher(n_genes, min(n_genes, parent_n_gi),
-      parent_n_genes, parent_n_gi)
+      parent_n_genes, parent_n_gi
+    )
   }
 
   logging::loginfo("Computing minimum probabilities and filtering out")
@@ -175,7 +189,7 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
         ann[["parent_NGI"]][i]
       )
     },
-    FUN.VALUE = numeric(1),
+    FUN.VALUE = 1.0,
     USE.NAMES = FALSE
   )]
 
@@ -191,7 +205,7 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
         ann[["parent_NGI"]][i]
       )
     },
-    FUN.VALUE = numeric(1),
+    FUN.VALUE = 1.0,
     USE.NAMES = FALSE
   )]
 
@@ -211,13 +225,14 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 
   if (hard_pmin_filter) {
     return(invisible(
-    list(enrich = ann[pmin < lim_corr], mapping = data_numbers,
-      universe = universe)
-  ))
+      list(enrich = ann[pmin < lim_corr], mapping = data_numbers,
+        universe = universe
+      )
+    ))
   } else {
     return(invisible(
-    list(enrich = ann, mapping = data_numbers, universe = universe)
-  ))
+      list(enrich = ann, mapping = data_numbers, universe = universe)
+    ))
   }
 
 }
@@ -248,51 +263,64 @@ enrich <- function(gene_input, ann, gene_universe = NULL, lim_pmin = 0.05,
 #' @param max_term_per_cluster Maximum number of terms per cluster to display or analyze.
 #' @export
 
-NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
-  public <- list(
-    #' @description 
+NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
+  public = list(
+    #' @description
     #' Initialize `NestedEnrich` object.
-    #' 
+    #'
     #' The constructor method for `NestedEnrich` sets up the enrichment analysis
     #' environment by loading and preparing data. It handles the initialization
     #' of data structures required for nested enrichment analysis based on
     #' specified parameters.
-    #' 
+    #'
     #' @param nested_df A nested tibble containing gene sets organized by batch,
     #' group, and type. Each row should correspond to a unique analysis context,
     #' containing a nested dataframe of gene identifiers.
-    #'   - `batch`: First level of grouping, specifies the batch context of the gene list.
+    #'   - `batch`: First level of grouping, specifies the batch context of the gene
+    #'     list.
     #'   - `group`: Second level of grouping, specifies the group context.
     #'   - `type`: Third level of grouping, specifies the type context.
     #'   - `data`: Column name containing the nested dataframe with gene identifiers;
     #'     must match the `data_col` argument.
-    #'   - `data_univ`: Optional; column name for the nested dataframe with the 
-    #'     "universe" of genes against which enrichment is assessed; 
+    #'   - `data_univ`: Optional; column name for the nested dataframe with the
+    #'     "universe" of genes against which enrichment is assessed;
     #      must match the `data_univ_col` argument.
     #' @param ann_space Annotation space data loaded from `load_ann_space`, defining
     #' the annotation context for enrichment analysis.
-    #' @param batch_col Optional; specifies the column name for batch if different from 'batch'.
-    #' @param group_col Optional; specifies the column name for group if different from 'group'.
+    #' @param batch_col Optional; specifies the column name for batch if different from
+    #'   'batch'.
+    #' @param group_col Optional; specifies the column name for group if different from
+    #'   'group'.
     #' @param type_col Optional; specifies the column name for type.
-    #' @param batch_labels Optional; specifies labels for batches if renaming is required.
+    #' @param batch_labels Optional; specifies labels for batches if renaming is
+    #'   required.
     #' @param group_labels Optional; specifies labels for groups if renaming is required.
     #' @param data_col Name of the column in `nested_df` containing gene data.
-    #' @param data_univ_col Optional; name of the column containing the universe of genes.
-    #' @param data_nested_id Column identifier in the nested data frames for gene identifiers.
-    #' @param regex Regular expression to clean gene identifiers (e.g., to remove version numbers).
-    #' @param lim_pmin Minimum p-value threshold; gene sets below this threshold are not retained
+    #' @param data_univ_col Optional; name of the column containing the universe of
+    #'   genes.
+    #' @param data_nested_id Column identifier in the nested data frames for gene
+    #'   identifiers.
+    #' @param regex Regular expression to clean gene identifiers (e.g., to remove
+    #'   version numbers).
+    #' @param lim_pmin Minimum p-value threshold; gene sets below this threshold
+    #'   are not retained
     #' unless `hard_pmin_filter` is set to FALSE.
     #' @param log_level Logging level as defined by the logging package.
-    #' @param hard_pmin_filter Boolean; if TRUE, removes gene sets with p-values below `lim_pmin`.
-    #' @param classic Boolean; if TRUE, performs analysis relative to the universe of genes.
+    #' @param hard_pmin_filter Boolean; if TRUE, removes gene sets with p-values
+    #'   below `lim_pmin`.
+    #' @param classic Boolean; if TRUE, performs analysis relative to the universe
+    #'   of genes.
     #' @param ... Additional arguments passed to the `enrich` function.
-    #' @return A new `NestedEnrich` object initialized with the provided data and settings.
-    initialize = function(nested_df, ann_space, batch_col = NULL,
-      group_col = NULL, type_col = NULL, batch_labels = NULL, 
+    #' @return A new `NestedEnrich` object initialized with the provided data and
+    #'   settings.
+    initialize = function(
+      nested_df, ann_space, batch_col = NULL,
+      group_col = NULL, type_col = NULL, batch_labels = NULL,
       group_labels = NULL, data_col = "data", data_univ_col = NULL,
       data_nested_id = "uniprot", regex = "-.*", lim_pmin = 0.05,
       classic = FALSE, log_level = "WARN",
-      hard_pmin_filter = TRUE, ...) {
+      hard_pmin_filter = TRUE, ...
+    ) {
 
       logging::basicConfig(level = log_level)
       logging::loginfo("Initialize cluster")
@@ -322,7 +350,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       }
       if (! ("batch" %in% names(nested_df) & "group" %in% names(nested_df))) {
         logging::logerror("batch and/or group undefined")
-        stop()
+        stop(call. = FALSE)
       }
       private$batch_labels <- unique(nested_df$batch)
       names(private$batch_labels) <- private$batch_labels
@@ -363,14 +391,16 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       private$raw_ann <- data.table::copy(ann_space)
       logging::loginfo("Parse genes with regex")
       if (regex != "") {
-        nested_dt$gene_inputs <- lapply(nested_dt$gene_inputs, function(x) {
-          unique(gsub(regex, "", x, perl = TRUE))
-        })
+        nested_dt$gene_inputs <- lapply(
+          nested_dt$gene_inputs, function(x) {
+            unique(gsub(regex, "", x, perl = TRUE))
+          }
+        )
         if (!is.null(data_univ_col)) {
           nested_dt$gene_universe <-
             lapply(nested_dt$gene_universe, function(x) {
               unique(gsub(regex, "", x, perl = TRUE))
-        })
+            })
         }
       }
 
@@ -418,18 +448,21 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       private$term_names <- private$raw_ann$name
       private$term_types <- private$raw_ann$type
       private$raw_ann$parents <- lapply(private$raw_ann$parents, function(x) {
-          as.integer(
-            na.omit(fastmatch::fmatch(x, private$term_ids))
-          )
-        }
-      )
+        as.integer(
+          na.omit(fastmatch::fmatch(x, private$term_ids))
+        )
+      })
       private$raw_ann$term <- fastmatch::fmatch(
-        private$raw_ann$term, private$term_ids)
+        private$raw_ann$term, private$term_ids
+      )
 
       logging::loginfo("filter raw_ann")
       private$raw_ann <-
-        private$raw_ann[, c("term", "genes", "parent_genes", "parents",
-          "ann_name"), with = FALSE]
+        private$raw_ann[
+          ,
+          c("term", "genes", "parent_genes", "parents", "ann_name"),
+          with = FALSE
+        ]
 
       logging::loginfo("prepare combinations")
       combinations <- expand.grid(
@@ -446,15 +479,17 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         nested_dt_row$ann_name <- ann_name_input
         ann <- raw_ann[ann_name == ann_name_input, ]
         ann[, ann_name := NULL]
-        gene_input <- nested_dt_row$gene_inputs[[1]]
+        gene_input <- nested_dt_row$gene_inputs[[1L]]
         if (is.null(data_univ_col)) {
           gene_universe <- NULL
         } else {
-          gene_universe <- nested_dt_row$gene_universe[[1]]
+          gene_universe <- nested_dt_row$gene_universe[[1L]]
         }
-        res <- enrich(gene_input, ann, gene_universe = gene_universe,
+        res <- enrich(
+          gene_input, ann, gene_universe = gene_universe,
           classic = classic, lim_pmin = lim_pmin, log_level = log_level,
-          hard_pmin_filter = hard_pmin_filter)
+          hard_pmin_filter = hard_pmin_filter
+        )
         nested_dt_row$mapping <- list((res$mapping))
         nested_dt_row$enrich <- list(res$enrich)
         nested_dt_row$universe <- list(res$universe)
@@ -464,7 +499,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       private$results <- rbindlist(
         lapply(
           combinations_list,
-          function(x) (fx(x[["i"]],x[["ann_name"]]))
+          function(x) (fx(x[["i"]], x[["ann_name"]]))
         ), fill = TRUE
       )
       logging::loginfo("Enrichment terminated.")
@@ -508,24 +543,43 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           new_dt[, GI := lapply(GI, function(x) {
             private$gene_ids[x]
           })]
-          new_dt[, name := sapply(term, function(x) {
-            private$term_names[x]
-          }, USE.NAMES = FALSE)]
-          new_dt[, type := sapply(term, function(x) {
-            private$term_types[x]
-          }, USE.NAMES = FALSE)]
-          new_dt[, term := sapply(term, function(x) {
-            private$term_ids[x]
-          }, USE.NAMES = FALSE)]
+          new_dt[, name := vapply(
+            term,
+            function(x) {
+              private$term_names[x]
+            },
+            character(1L),
+            USE.NAMES = FALSE
+          )]
+          new_dt[, type := vapply(
+            term, function(x) {
+              private$term_types[x]
+            },
+            character(1L),
+            USE.NAMES = FALSE
+          )]
+          new_dt[, term := vapply(
+            term,
+            function(x) {
+              private$term_ids[x]
+            },
+            character(1L),
+            USE.NAMES = FALSE
+          )]
           new_dt[, parents := lapply(parents, function(x) {
             private$term_ids[x]
           })]
-          data.table::setcolorder(new_dt,
-            c("term", "name", "type", setdiff(names(new_dt), c("term", "name", "type"))))
-          return(new_dt)
+          data.table::setcolorder(
+            new_dt,
+            c(
+              "term", "name", "type",
+              setdiff(names(new_dt), c("term", "name", "type"))
+            )
+          )
+          new_dt
         })]
       }
-      return(results)
+      results
     },
 
     #' @description
@@ -533,12 +587,13 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param verbose Replace integer with IDs and add names for terms
     #' @return Nested data frame with results
     filter_and_get_results = function(
-      in_batch, in_group, in_type, in_ann_name, verbose = FALSE) {
+      in_batch, in_group, in_type, in_ann_name, verbose = FALSE
+    ) {
       self$get_results(verbose)[
-        batch %fin% in_batch &
-        group %fin% in_group &
-        type %fin% in_type &
-        ann_name %fin% in_ann_name
+        (batch %fin% in_batch)
+        & (group %fin% in_group)
+        & (type %fin% in_type)
+        & (ann_name %fin% in_ann_name)
       ]
     },
 
@@ -572,14 +627,16 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param build_and_set_p_matrix build a set term-sample pvalue matrix
     #' @param build_and_set_hclust built and set hclust with default parameters
     #' @param min_signif_term_for_clust minimun number of term to start clusters
-    filter_and_set_significant_results = function(p_max_enrich = 0.05,
+    filter_and_set_significant_results = function(
+      p_max_enrich = 0.05,
       p_type = "qval_bh", build_and_set_i_matrix = TRUE,
       build_and_set_p_matrix = FALSE, build_and_set_hclust = TRUE,
-      min_signif_term_for_clust = 10) {
+      min_signif_term_for_clust = 10L
+    ) {
 
       if (! p_type %in% c("pval", "qval_bh", "qval_bonferroni")) {
         logging::logerror("`p_type` must be pval, pval_bh or pval_bonferroni")
-        stop()
+        stop(call. = FALSE)
       }
 
       # reset
@@ -590,13 +647,17 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
       private$significant_results <- self$unnest_and_get_results()
 
-      private$significant_results[,
+      private$significant_results[
+        ,
         significant := fifelse(
-          is.na(.SD[[p_type]]) | .SD[[p_type]] > p_max_enrich, FALSE, TRUE)]
+          is.na(.SD[[p_type]]) | .SD[[p_type]] > p_max_enrich, FALSE, TRUE
+        )
+      ]
 
       private$significant_terms <- unique(
         private$significant_results$term[
-          private$significant_results$significant]
+          private$significant_results$significant
+        ]
       )
 
       private$significant_results <- private$significant_results[
@@ -609,7 +670,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         } else {
           logging::logwarn("Cluster not done (signif term < threshold)")
         }
-        if (length(private$significant_terms) > 0) {
+        if (length(private$significant_terms) > 0L) {
           private$clusters <- rep(1L, length(private$significant_terms))
           names(private$clusters) <- private$term_ids[private$significant_terms]
         } else {
@@ -633,6 +694,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           }
         }
       }
+      private$filtering_params <- list(
+        p_max_enrich = p_max_enrich,
+        p_type = p_type,
+        build_and_set_i_matrix = build_and_set_i_matrix,
+        build_and_set_p_matrix = build_and_set_p_matrix,
+        build_and_set_hclust = build_and_set_hclust,
+        min_signif_term_for_clust = min_signif_term_for_clust
+      )
     },
 
     #' @description
@@ -676,8 +745,9 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       if (is.null(private$significant_results)) {
         logging::logerror(paste(
           "This function requires to run first",
-          "the filter_and_set_significant_results method"))
-        stop()
+          "the filter_and_set_significant_results method"
+        ))
+        stop(call. = FALSE)
       }
 
       logging::logdebug("start incidence matrix")
@@ -698,9 +768,10 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         filtered_raw_ann$term,
         function(in_term) {
           matrix(
-            as.integer(allgenes %fin%
-              filtered_raw_ann[term == in_term, genes[[1]]]),
-            nrow = 1,
+            as.integer(
+              allgenes %fin% filtered_raw_ann[term == in_term, genes[[1L]]]
+            ),
+            nrow = 1L,
             dimnames = list(in_term, NULL)
           )
         }
@@ -719,20 +790,23 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       if (is.null(private$significant_results)) {
         logging::logerror(paste(
           "This function requires to run first",
-          "the filter_and_set_significant_results method"))
-        stop()
+          "the filter_and_set_significant_results method"
+        ))
+        stop(call. = FALSE)
       }
 
-      dt <- self$get_significant_results(
-        )[, .(term, batch, group, type, get(p_type))]
-      setnames(dt, names(dt)[5], p_type)
+      dt <- self$get_significant_results()[
+        ,
+        .(term, batch, group, type, get(p_type))
+      ]
+      setnames(dt, names(dt)[5L], p_type)
       dt[, col := paste(batch, group, type, sep = "_")]
       dt_wide <- dcast(dt, term ~ col, value.var = p_type)
 
       rn <- dt_wide$term
       dt_wide[, term := NULL]
       private$p_matrix <- as.matrix(dt_wide)
-      private$p_matrix[is.na(private$p_matrix)] <- 1
+      private$p_matrix[is.na(private$p_matrix)] <- 1L
       rownames(private$p_matrix) <- rn
     },
 
@@ -771,28 +845,29 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param pval_fun function to transform the p-values before clustering
     #' @param ... additional parameters for pvclust or hclust
     #' @return NULL
-    build_and_set_hclust = function(method_dist = "jaccard", #nolint
-      method_hclust = "ward.D2", using_pvclust = FALSE, dim_reduce = 6,
-      matrix_type = "incidence", prcomp_args = list(), 
-      pval_fun = log10,
-      ...) { #nolint
+    build_and_set_hclust = function(
+      method_dist = "jaccard",
+      method_hclust = "ward.D2", using_pvclust = FALSE, dim_reduce = 6L,
+      matrix_type = "incidence", prcomp_args = list(),
+      pval_fun = log10, ...
+    ) {
       private$using_pvclust <- using_pvclust
 
       # build matrix
       if (matrix_type == "incidence") {
         mat <- private$i_matrix
       } else if (matrix_type == "pval") {
-        mat <- apply(private$p_matrix, c(1,2), pval_fun)
+        mat <- apply(private$p_matrix, c(1L, 2L), pval_fun)
       } else if (matrix_type == "both") {
-        mat <- cbind(private$i_matrix, apply(private$p_matrix, c(1,2), pval_fun))
+        mat <- cbind(private$i_matrix, apply(private$p_matrix, c(1L, 2L), pval_fun))
       } else {
         logging::logerror("Incorrect value for matrix_type")
-        stop()
+        stop(call. = FALSE)
       }
 
       if (dim_reduce) {
         prcomp_args$x <- mat
-        if (dim_reduce < 1) {
+        if (dim_reduce < 1L) {
           prcomp_args$tol <- dim_reduce
         } else {
           prcomp_args$rank. <- as.integer(dim_reduce)
@@ -828,8 +903,17 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       if (using_pvclust) {
         self$cut_hclust_and_set_clusters(0.8)
       } else {
-        self$cut_hclust_and_set_clusters(8)
+        self$cut_hclust_and_set_clusters(8L)
       }
+      private$clustering_params <- list(
+        method_dist = method_dist,
+        method_hclust = method_hclust,
+        using_pvclust = using_pvclust,
+        matrix_type = matrix_type,
+        dim_reduce = dim_reduce,
+        prcomp_args = prcomp_args,
+        pval_fun = pval_fun
+      )
     },
 
     #' @description
@@ -852,8 +936,10 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param ggdendro_args list of arguments passed to ggdendrogram
     #' @param ... passed to get_label_dict
     #' @return graphical output from ggdendro::ggdendrogram
-    plot_hclust = function(cluster_rect = TRUE, rect_linetype = "solid",
-      rect_linewidth = 1, ggdendro_args = list(), ...) {
+    plot_hclust = function(
+      cluster_rect = TRUE, rect_linetype = "solid",
+      rect_linewidth = 1L, ggdendro_args = list(), ...
+    ) {
       if (private$using_pvclust) {
         hc <- private$hclust$hclust
       } else {
@@ -868,7 +954,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       args <- modifyList(defaults, list(data = hc, ...))
       dend <- do.call(ggdendro::ggdendrogram, args)
 
-      if (length(unique(private$clusters[duplicated(private$clusters)])) == 0) {
+      if (length(unique(private$clusters[duplicated(private$clusters)])) == 0L) {
         cluster_rect <- FALSE
       }
 
@@ -901,7 +987,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
         rect_data <- dplyr::arrange(rect_data, .data$xmin)
         rect_data$color <- "a"
-        rect_data$color[seq(2, nrow(rect_data), 2)] <- "b"
+        rect_data$color[seq(2L, nrow(rect_data), 2L)] <- "b"
 
         # Plot the dendrogram
         dend <- dend +
@@ -910,16 +996,22 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
             ggplot2::aes(
               xmin = .data$xmin, xmax = .data$xmax,
               ymin = .data$ymin, ymax = .data$ymax,
-              color = .data$color),
+              color = .data$color
+            ),
             linetype = rect_linetype,
             linewidth = rect_linewidth,
             fill = NA
-          )  +
-        ggplot2::guides(color = "none") +
-        ggplot2::geom_label(data = rect_data, 
-          mapping = ggplot2::aes((.data$xmax + .data$xmin)/2, 
-            .data$ymax, label = .data$cluster),
-        fill="#FFFFFFD0")
+          ) +
+          ggplot2::guides(color = "none") +
+          ggplot2::geom_label(
+            data = rect_data,
+            mapping = ggplot2::aes(
+              (.data$xmax + .data$xmin) / 2.0,
+              .data$ymax,
+              label = .data$cluster
+            ),
+            fill = "#FFFFFFD0"
+          )
       }
       return(dend)
     },
@@ -947,32 +1039,35 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param pvclust_pv probability value (pv) for pvclust
     #' (see pvclust::pvpick)
     #' @return named character as detailed in description
-    cut_hclust_and_set_clusters = function(value, min_size = 5, max_size = 8,
+    cut_hclust_and_set_clusters = function(
+      value, min_size = 5L, max_size = 8L,
       max_size_only_to_parents = TRUE, min_size_only_to_children = TRUE,
       filter_max_size_first = TRUE, rm_redundancy_method = "largest",
-      pvclust_pv = "au") {
-      if (value < 0) {
+      pvclust_pv = "au"
+    ) {
+      if (value < 0L) {
         logging::logdebug("`value` cannot be < 0")
-        stop()
+        stop(call. = FALSE)
       }
       if (! rm_redundancy_method %in% c("largest", "smallest")) {
         logging::logdebug("`pvclust_unique_method` wrong value")
-        stop()
+        stop(call. = FALSE)
       }
       if (! pvclust_pv %in% c("si", "au", "bp")) {
         logging::logdebug("`pvclust_pv` wrong value")
-        stop()
+        stop(call. = FALSE)
       }
       if (private$using_pvclust) {
-        if (value > 1) {
+        if (value > 1L) {
           logging::logdebug("`value` cannot be > 1 with pvclust")
-          stop()
+          stop(call. = FALSE)
         }
 
         # get edge below pvals
         hclust_pvpick <-
-          pvclust::pvpick(private$hclust, alpha = value, max.only = FALSE,
-            pv = pvclust_pv)
+          pvclust::pvpick(
+            private$hclust, alpha = value, max.only = FALSE, pv = pvclust_pv
+          )
 
         # for each cluster count the number of terms
         # note: hclust_pvpick$clusters is a list
@@ -1003,12 +1098,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           purrr::map_int(
             tab_cluster$clusters,
             function(x) {
-            sum(purrr::map_lgl(
+              sum(purrr::map_lgl(
                 tab_cluster$clusters,
                 function(y) {
-                all(y %in% x)
+                  all(y %in% x)
                 }
-            )) - 1L
+              )) - 1L
             }
           )
         }
@@ -1016,31 +1111,34 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         filter_min_size <- function(tab_cluster, min_size_only_to_children) {
           tab_cluster$n_parents <- get_n_parents(tab_cluster)
           if (min_size_only_to_children) {
-            results <- dplyr::filter(tab_cluster,
-              .data$n >= .env$min_size |
-              .data$n_parents == 0
+            results <- dplyr::filter(
+              tab_cluster,
+              .data$n >= .env$min_size
+              | .data$n_parents == 0L
             )
           } else {
             results <- dplyr::filter(tab_cluster,
               .data$n >= .env$min_size
             )
           }
-          return(results)
+          results
         }
 
         filter_max_size <- function(tab_cluster, max_size_only_to_parents) {
           tab_cluster$n_children <- get_n_children(tab_cluster)
           if (max_size_only_to_parents) {
-            results <- dplyr::filter(tab_cluster,
-              .data$n <= .env$max_size |
-              .data$n_children == 0
+            results <- dplyr::filter(
+              tab_cluster,
+              .data$n <= .env$max_size
+              | .data$n_children == 0L
             )
           } else {
-            results <- dplyr::filter(tab_cluster,
+            results <- dplyr::filter(
+              tab_cluster,
               .data$n <= .env$max_size
             )
           }
-          return(results)
+          results
         }
         tab_cluster$n_parents <- get_n_parents(tab_cluster)
         tab_cluster$n_children <- get_n_children(tab_cluster)
@@ -1061,9 +1159,9 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         tab_cluster$n_children <- get_n_children(tab_cluster)
 
         if (rm_redundancy_method == "largest") {
-          tab_cluster <- dplyr::filter(tab_cluster, .data$n_parents == 0)
+          tab_cluster <- dplyr::filter(tab_cluster, .data$n_parents == 0L)
         } else {
-          tab_cluster <- dplyr::filter(tab_cluster, .data$n_children == 0)
+          tab_cluster <- dplyr::filter(tab_cluster, .data$n_children == 0L)
         }
 
         cls <- unlist(purrr::map(
@@ -1075,25 +1173,35 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           }
 
         ))
-        cl <- length(tab_cluster$clusters) + 1
+        cl <- length(tab_cluster$clusters) + 1L
         orphans <-
           row.names(
             private$i_matrix
           )[! row.names(private$i_matrix) %in% names(cls)]
-        cls_bis <- cl:(cl + length(orphans) - 1)
+        cls_bis <- cl:(cl + length(orphans) - 1L)
         names(cls_bis) <- orphans
         private$clusters <- c(cls, cls_bis)
       } else {
         value <- as.integer(value)
-        if (value < 1) {
+        if (value < 1L) {
           logging::logdebug("`value` cannot be < 1 without pvclust")
-          stop()
+          stop(call. = FALSE)
         }
         private$clusters <- cutree(private$hclust, k = value)
       }
-      if (length(private$clusters) == 0) {
+      if (length(private$clusters) == 0L) {
         logging::logwarn("No cluster was found with this parametrization")
       }
+      private$classification_params <- list(
+        value = value,
+        min_size = min_size,
+        max_size = max_size,
+        max_size_only_to_parents = max_size_only_to_parents,
+        min_size_only_to_children = min_size_only_to_children,
+        filter_max_size_first = filter_max_size_first,
+        rm_redundancy_method = rm_redundancy_method,
+        pvclust_pv = pvclust_pv
+      )
     },
 
     #' @description
@@ -1101,7 +1209,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     annotate_clusters_and_get_significant_results = function() {
       if (is.null(private$clusters)) {
         logging::logdebug("clusters not set yet")
-        stop()
+        stop(call. = FALSE)
       }
       results <- self$get_significant_results()
       results[, cluster := private$clusters[.SD[["term"]]]]
@@ -1130,15 +1238,18 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param reduced_label_max_size maximum length for term label
     #' number of gene per term is used for ordering.
     #' @return translte diuctionary
-    get_label_dict = function(to = "reduced_label_with_code",
+    get_label_dict = function(
+      to = "reduced_label_with_code",
       append_cluster_id = FALSE,
       append_sep = "#",
-      reduced_label_max_size = 40) {
+      reduced_label_max_size = 40L
+    ) {
       results <- setNames(switch(to,
         id = private$term_ids,
         reduced_label = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
-          "...", sep = ""),
+          "...", sep = ""
+        ),
         reduced_label_with_code = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
           "...",
@@ -1155,8 +1266,8 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         empty = rep("", length(private$term_ids))
       ), private$term_ids)
       if (append_cluster_id) {
-        results = paste0(results, append_sep, private$clusters[private$term_ids])
-        names(results) = private$term_ids
+        results <- paste0(results, append_sep, private$clusters[private$term_ids])
+        names(results) <- private$term_ids
       }
       results
     },
@@ -1177,10 +1288,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param in_type vector of type code to keep
     #' @param ... passed to get_label_dict
     #' @return ggplot2 object
-    prepare_results_for_plot = function(max_cluster = NULL,
+    prepare_results_for_plot = function(
+      max_cluster = NULL,
       max_term_per_cluster = NULL, ordered_by_pval = TRUE,
       keep_only_signif = TRUE, in_batch = NULL, in_group = NULL, in_type = NULL,
-      ...) {
+      ...
+    ) {
       dt <- self$annotate_clusters_and_get_significant_results()
 
       dt <- dt[order(-pval)]
@@ -1199,33 +1312,50 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
 
       if (! is.null(private$batch_labels)) {
-          dt[, batch := factor(private$batch_labels[as.character(batch)],
-            levels = private$batch_labels)]
+        dt[
+          ,
+          batch := factor(
+            private$batch_labels[as.character(batch)],
+            levels = private$batch_labels
+          )
+        ]
       }
 
       if (! is.null(private$group_labels)) {
-          dt[, group := factor(private$group_labels[as.character(group)],
-            levels = private$group_labels)]
+        dt[
+          ,
+          group := factor(
+            private$group_labels[as.character(group)],
+            levels = private$group_labels
+          )
+        ]
       }
 
       if (! is.null(max_cluster)) {
         if (length(cl_sorted) > max_cluster) {
-          cl_top <- cl_sorted[1: max_cluster]
+          cl_top <- cl_sorted[1L:max_cluster]
         } else {
           cl_top <- cl_sorted
         }
         dt <- dt[cluster %fin% cl_top]
       }
 
-      data_sum <- dt[,
-        .(min_p = min(pval, na.rm = TRUE)), by = .(term, cluster, name)]
+      data_sum <- dt[
+        ,
+        .(min_p = min(pval, na.rm = TRUE)),
+        by = .(term, cluster, name)
+      ]
       data_sum <- data_sum[order(min_p)]
 
       terms_order_pval <- data_sum$term
 
       if (! is.null(max_term_per_cluster)) {
-        data_sum <- data_sum[, head(.SD, max_term_per_cluster), by = cluster,
-          .SDcols = c("min_p", "term")]
+        data_sum <- data_sum[
+          ,
+          head(.SD, max_term_per_cluster),
+          by = cluster,
+          .SDcols = c("min_p", "term")
+        ]
         top_terms <- data_sum$term
         dt <- dt[term %fin% top_terms]
       }
@@ -1243,9 +1373,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       # Summarise Ngenes, parent_Ngenes by term and cluster, then arrange by
       # Ngenes
       df_size <- unique(dt[, .(term, cluster, Ngenes, parent_Ngenes)])
-      df_size <- df_size[,
+      df_size <- df_size[
+        ,
         .(Ngenes = max(Ngenes), parent_Ngenes = max(parent_Ngenes)),
-        by = .(term, cluster)]
+        by = .(term, cluster)
+      ]
       df_size <- df_size[order(-Ngenes)]
       term_order_per_ngenes <- as.character(df_size$term)
 
@@ -1281,7 +1413,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
       if (! p_type %in% c("pval", "qval_bh", "qval_bonferroni")) {
         logging::logerror("`p_type` must be pval, pval_bh or pval_bonferroni")
-        stop()
+        stop(call. = FALSE)
       }
 
       list2color <- c(
@@ -1317,35 +1449,37 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       actual_list2color[is.na(actual_list2color)] <- "#000000"
 
       ggplot2::ggplot(
-          df,
-          ggplot2::aes(
-              .data$type,
-              .data$term,
-              size = -log10(.data[[p_type]]),
-              fill = .data$type,
-              color = .data$type,
-              shape = as.character(.data$significant)
-          )
+        df,
+        ggplot2::aes(
+          .data$type,
+          .data$term,
+          size = -log10(.data[[p_type]]),
+          fill = .data$type,
+          color = .data$type,
+          shape = as.character(.data$significant)
+        )
       ) +
-      ggplot2::geom_point() +
-      ggplot2::scale_y_discrete(labels = plist$term2label) +
-      ggh4x::facet_nested(
-        formula("cluster~batch+group"),
-        space = "free_y",
-        scales = "free_y") +
-      THEME_NEXOMIS +
-      ggplot2::theme(axis.text.x = ggplot2::element_blank()) +
-      ggplot2::labs(x = NULL, y = NULL, size = "score") +
-      ggplot2::theme(
-        legend.position = "bottom", legend.justification = "right") +
-      ggplot2::scale_fill_manual(values = actual_list2color) +
-      ggplot2::scale_color_manual(values = actual_list2color) +
-      ggplot2::scale_shape_manual(values = c("TRUE" = 19, "FALSE" = 4)) +
-      ggplot2::guides(
-        fill = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
-        size = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
-        shape = "none"
-      )
+        ggplot2::geom_point() +
+        ggplot2::scale_y_discrete(labels = plist$term2label) +
+        ggh4x::facet_nested(
+          formula("cluster~batch+group"),
+          space = "free_y",
+          scales = "free_y"
+        ) +
+        THEME_NEXOMIS +
+        ggplot2::theme(axis.text.x = ggplot2::element_blank()) +
+        ggplot2::labs(x = NULL, y = NULL, size = "score") +
+        ggplot2::theme(
+          legend.position = "bottom", legend.justification = "right"
+        ) +
+        ggplot2::scale_fill_manual(values = actual_list2color) +
+        ggplot2::scale_color_manual(values = actual_list2color) +
+        ggplot2::scale_shape_manual(values = c("TRUE" = 19L, "FALSE" = 4L)) +
+        ggplot2::guides(
+          fill = ggplot2::guide_legend(nrow = 2L, byrow = TRUE),
+          size = ggplot2::guide_legend(nrow = 2L, byrow = TRUE),
+          shape = "none"
+        )
     },
 
     #' @description
@@ -1359,30 +1493,34 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
 
       log10_minor_break <- function(...) {
         function(x) {
-          minx <- floor(min(log10(x), na.rm = TRUE)) - 1
-          maxx <- ceiling(max(log10(x), na.rm = TRUE)) + 1
-          n_major      <- maxx - minx + 1
-          major_breaks <- seq(minx, maxx, by = 1)
+          minx <- floor(min(log10(x), na.rm = TRUE)) - 1L
+          maxx <- ceiling(max(log10(x), na.rm = TRUE)) + 1L
+          n_major      <- maxx - minx + 1L
+          major_breaks <- seq(minx, maxx, by = 1L)
           minor_breaks <-
-            rep(log10(seq(1, 9, by = 1)), times = n_major) +
-            rep(major_breaks, each = 9)
-          return(10^(minor_breaks))
+            rep(log10(seq(1L, 9L, by = 1L)), times = n_major) +
+            rep(major_breaks, each = 9L)
+          10.0^(minor_breaks)
         }
       }
 
-      t <- c("1", "", "", "", "", "", "", "", "",
-          "10", "", "", "", "", "", "", "", "",
-          "100", "", "", "", "", "", "", "", "",
-          "1e3", "", "", "", "", "", "", "", "",
-          "1e4")
+      t <- c(
+        "1", "", "", "", "", "", "", "", "",
+        "10", "", "", "", "", "", "", "", "",
+        "100", "", "", "", "", "", "", "", "",
+        "1e3", "", "", "", "", "", "", "", "",
+        "1e4"
+      )
 
-      names(t) <- log10_minor_break()(c(10, 1000))[1:37]
+      names(t) <- log10_minor_break()(c(10L, 1000L))[1L:37L]
 
       ggplot2::ggplot(
         df_size,
-        ggplot2::aes(.data$term, .data$value, alpha = .data$variable)) +
+        ggplot2::aes(.data$term, .data$value, alpha = .data$variable)
+      ) +
         ggh4x::facet_nested(
-          formula("cluster ~ ."), space = "free", scales = "free") +
+          formula("cluster ~ ."), space = "free", scales = "free"
+        ) +
         ggplot2::coord_flip() +
         ggplot2::scale_y_log10(breaks = as.numeric(names(t)), labels = t) +
         ggplot2::scale_x_discrete(labels = plist$term2label) +
@@ -1390,11 +1528,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         ggplot2::labs(y = NULL, x = NULL, title = NULL) +
         ggplot2::guides(
           size = "none", shape = "none", fill = "none", color = "none",
-          alpha = ggplot2::guide_legend(title = "", nrow = 2, byrow = TRUE)
+          alpha = ggplot2::guide_legend(title = "", nrow = 2L, byrow = TRUE)
         ) +
         THEME_NEXOMIS +
         ggplot2::scale_alpha_manual(
-          values = c(parent_Ngenes = 0.35, Ngenes = 1),
+          values = c(parent_Ngenes = 0.35, Ngenes = 1L),
           labels = c(parent_Ngenes = "supersets", Ngenes = "set")
         ) +
         ggplot2::theme(legend.position = "bottom",
@@ -1407,13 +1545,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' Combination of enrichment plots with p-value per lists and term sizes
     #' @param rel_widths relative width of the combined plots
     #' @param ... arguments passed to `prepare_results_for_plot`
-    plot_combined = function(rel_widths = c(6, 1), ...) {
+    plot_combined = function(rel_widths = c(6L, 1L), ...) {
       cowplot::plot_grid(
         self$plot_with_pval(...) +
           ggplot2::theme(strip.text.y = ggplot2::element_blank()),
         self$plot_with_size(...) +
           ggplot2::theme(axis.text.y = ggplot2::element_blank()),
-    nrow = 1, align = "h", rel_widths = rel_widths, axis = "bt")
+        nrow = 1L, align = "h", rel_widths = rel_widths, axis = "bt"
+      )
     },
 
     #' @description
@@ -1429,7 +1568,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' - x_batch -> Batch
     #' - x_group -> Group
     #' @return count table wih the following names:
-    #' - gene: [character] gene 
+    #' - gene: [character] gene
     #' - cluster: [integer] cluster (set of terms) identitified by its number
     #' - intra_x_term: [integer] Number of occurence for the gene in the terms
     #'   intra-cluster
@@ -1437,8 +1576,10 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' - x_cluster:  [integer] Number of occurence for the gene in clusters
     #' - x_batch: Number of occurence for the gene in batches
     #' - x_group: Number of occurence for the gene in groups
-    count_gene_per_cluster = function(id2name = NULL,
-      new_name_label = "Gene Name", verbose = FALSE) {
+    count_gene_per_cluster = function(
+      id2name = NULL,
+      new_name_label = "Gene Name", verbose = FALSE
+    ) {
 
       dt_gene_x_cluster_x_term <- data.table::rbindlist(lapply(
         unique(private$clusters),
@@ -1452,12 +1593,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
               dt_row <- dt[i, ]
               data.table::data.table(
                 term = dt_row$term,
-                gene = dt_row$genes[[1]]
+                gene = dt_row$genes[[1L]]
               )
             }
           ))
           result[, cluster := x]
-          return(result)
+          result
         }
       ))
 
@@ -1478,36 +1619,60 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         }
       ), fill = TRUE)
 
-      dt_intra_x_term <- dt_gene_x_cluster_x_term[,
-        .(intra_x_term = data.table::uniqueN(term)), by = .(gene, cluster)]
-      dt_extra_x_term <- dt_gene_x_cluster_x_term[,
-        .(extra_x_term = data.table::uniqueN(term)), by = .(gene)]
-      dt_x_cluster <- dt_gene_x_cluster_x_term[,
-        .(x_cluster = data.table::uniqueN(cluster)), by = .(gene)]
-      dt_x_batch <- dt_gene_x_design[, .(x_batch = data.table::uniqueN(batch)),
-        by = .(gene)]
-      dt_x_group <- dt_gene_x_design[, .(x_group = data.table::uniqueN(
-        interaction(batch, group, drop = TRUE))), by = .(gene)]
-      summary_dt <- data.table::merge.data.table(dt_intra_x_term,
-        dt_extra_x_term, by = "gene")
+      dt_intra_x_term <- dt_gene_x_cluster_x_term[
+        ,
+        .(intra_x_term = data.table::uniqueN(term)),
+        by = .(gene, cluster)
+      ]
+      dt_extra_x_term <- dt_gene_x_cluster_x_term[
+        ,
+        .(extra_x_term = data.table::uniqueN(term)),
+        by = .(gene)
+      ]
+      dt_x_cluster <- dt_gene_x_cluster_x_term[
+        ,
+        .(x_cluster = data.table::uniqueN(cluster)),
+        by = .(gene)
+      ]
+      dt_x_batch <- dt_gene_x_design[
+        ,
+        .(x_batch = data.table::uniqueN(batch)),
+        by = .(gene)
+      ]
+      dt_x_group <- dt_gene_x_design[
+        ,
+        .(x_group = data.table::uniqueN(
+          interaction(batch, group, drop = TRUE)
+        )),
+        by = .(gene)
+      ]
+      summary_dt <- data.table::merge.data.table(
+        dt_intra_x_term,
+        dt_extra_x_term, by = "gene"
+      )
       summary_dt <- data.table::merge.data.table(summary_dt, dt_x_cluster, by = "gene")
       summary_dt <- data.table::merge.data.table(summary_dt, dt_x_batch, by = "gene")
       summary_dt <- data.table::merge.data.table(summary_dt, dt_x_group, by = "gene")
 
       summary_dt[, gene := private$gene_ids[gene]]
-      
+
       if (! is.null(id2name)) {
         # How to make it to the 3rd column position ?
         summary_dt[, (new_name_label) := as.character(id2name[gene])]
       }
       data.table::setorder(summary_dt,
-        cluster, - intra_x_term, - extra_x_term, gene)
+        cluster, - intra_x_term, - extra_x_term, gene
+      )
 
       if (verbose) {
-        old_names <- c("gene", "cluster", "intra_x_term", "extra_x_term",
-          "x_cluster", "x_batch", "x_group")
-        new_names <- c("Gene", "Cluster", "Intra",
-          "Extra", "Clusters", "Batches", "Groups")
+        old_names <- c(
+          "gene", "cluster", "intra_x_term", "extra_x_term",
+          "x_cluster", "x_batch", "x_group"
+        )
+        new_names <- c(
+          "Gene", "Cluster", "Intra",
+          "Extra", "Clusters", "Batches", "Groups"
+        )
         if (! is.null(id2name)) {
           old_names <- c(old_names, new_name_label)
           new_names <- c(new_names, new_name_label)
@@ -1517,10 +1682,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       if (! is.null(id2name)) {
         current_cols <- names(summary_dt)
         desired_order <-
-          c(current_cols[1], new_name_label, current_cols[2:(length(current_cols)-1)])
+          c(current_cols[1L], new_name_label,
+            current_cols[2L:(length(current_cols) - 1L)]
+          )
         data.table::setcolorder(summary_dt, desired_order)
       }
-
       return(summary_dt)
     },
 
@@ -1534,28 +1700,35 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' (adjusted p-values) for each cluster to assess the overall significance, alongside
     #' other relevant term details.
     #'
-    #' @param verbose Boolean, if TRUE, column names in the returned table are more descriptive.
-    #' The renaming adjusts column headers to be more human-readable and suitable for reports
-    #' or presentations. Specific changes include:
+    #' @param verbose Boolean, if TRUE, column names in the returned table are more
+    #'   descriptive.
+    #' The renaming adjusts column headers to be more human-readable and suitable
+    #' for reports or presentations. Specific changes include:
     #'   - "cluster" becomes "Cluster"
     #'   - "term" becomes "Term"
     #'   - "name" becomes "Name"
     #'   - "ann_name" becomes "Database"
     #'   - "Ngenes" becomes "# of Genes"
     #'   - "min_qval" becomes "Min q-value"
-    #' @return A tibble table containing a summary of the clusters with the following columns:
+    #' @return A tibble table containing a summary of the clusters with the following
+    #'   columns:
     #'   - `cluster`: Cluster identifier (numeric or character based on input data).
     #'   - `term`: Unique identifier for each term within a cluster.
     #'   - `name`: Descriptive name of the term.
     #'   - `ann_name`: Source database from which the term was derived.
     #'   - `Ngenes`: Count of genes associated with each term.
-    #'   - `min_qval`: Minimum q-value observed within each cluster, reflecting the lowest
+    #'   - `min_qval`: Minimum q-value observed within each cluster, reflecting the
+    #'     lowest
     #'     adjusted p-value computed for terms within the cluster.
-    #'   - Additional columns representing each combination of batch, group, and type, formatted
-    #'     as 'batch|group|type', each containing the q-value for the term within that context.
+    #'   - Additional columns representing each combination of batch, group, and type,
+    #'     formatted
+    #'     as 'batch|group|type', each containing the q-value for the term within that
+    #'     context.
     #'
-    build_cluster_summary_table = function(verbose = FALSE, 
-      p_type = "qval_bh") {
+    build_cluster_summary_table = function(
+      verbose = FALSE,
+      p_type = "qval_bh"
+    ) {
 
       select_res <- c(
         "cluster", "term", "name", "ann_name", "Ngenes", "batch", "group",
@@ -1567,13 +1740,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         scl_table[, category := paste(
           private$batch_labels[batch],
           private$group_labels[group],
-          type, sep = "|")]
+          type, sep = "|"
+        )]
       } else {
         scl_table[, category := paste(batch, group, type, sep = "|")]
       }
 
       scl_table[, tmp_p := scl_table[[p_type]]]
-      
+
       cl_sum <- scl_table[, .(min_q_val_cl = min(tmp_p)), by = cluster]
       cl2min <- cl_sum$min_q_val_cl
       setattr(cl2min, "names", as.character(cl_sum$cluster))
@@ -1589,18 +1763,68 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       scl_table[, c("batch", "group", "type", "tmp_p") := NULL]
 
       wide_scl_table <- dcast(scl_table, ... ~ category,
-        value.var = p_type)
+        value.var = p_type
+      )
 
       data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_term)
 
       setattr(wide_scl_table$cluster, "names", NULL)
       if (verbose) {
-        setnames(wide_scl_table, old = c("cluster", "term", "name", "ann_name",
-          "Ngenes", "min_q_val_cl", "min_q_val_term"),
-          new = c("Cluster", "Term", "Name", "Database", "# of Genes", "Cluster min q-value", "Term min q-value"))
+        setnames(wide_scl_table,
+          old = c(
+            "cluster", "term", "name", "ann_name",
+            "Ngenes", "min_q_val_cl", "min_q_val_term"
+          ),
+          new = c(
+            "Cluster", "Term", "Name", "Database",
+            "# of Genes", "Cluster min q-value", "Term min q-value"
+          )
+        )
       }
 
       return(wide_scl_table)
+    },
+
+    #' @description
+    #' Get filtering parameters
+    #' @return List of filtering parameters
+    get_filtering_params = function() {
+      private$filtering_params
+    },
+
+    #' @description
+    #' Get clustering parameters
+    #' @return List of clustering parameters
+    get_clustering_params = function() {
+      private$clustering_params
+    },
+
+    #' @description
+    #' Get classification parameters
+    #' @return List of classification parameters
+    get_classification_params = function() {
+      private$classification_params
+    },
+
+    #' @description
+    #' Check if filtering has been done
+    #' @return Boolean indicating if filtering is complete
+    is_filtered = function() {
+      !is.null(private$significant_results)
+    },
+
+    #' @description
+    #' Check if clustering has been done
+    #' @return Boolean indicating if clustering is complete
+    is_clustered = function() {
+      !is.null(private$hclust)
+    },
+
+    #' @description
+    #' Check if classification has been done
+    #' @return Boolean indicating if classification is complete
+    is_classified = function() {
+      !is.null(private$clusters)
     },
 
     #' @description
@@ -1611,9 +1835,11 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     #' @param write_cluster_summary whether to write or not the summary
     #' of all cluster
     #' @return None
-    write_xlsx = function(output_folder = ".", id2name = NULL,
+    write_xlsx = function(
+      output_folder = ".", id2name = NULL,
       new_name_label = "Tested Gene Name", write_cluster_summary = TRUE,
-      p_type = "qval_bh") {
+      p_type = "qval_bh"
+    ) {
       new_names <- c(
         "Term ID",
         "Term name",
@@ -1663,7 +1889,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
             ]
 
             # Get the enrichment data.table
-            enrich_dt <- res_filtered$enrich[[1]]
+            enrich_dt <- res_filtered$enrich[[1L]]
 
             # Add cluster information
             enrich_dt[, cluster := private$clusters[term]]
@@ -1685,22 +1911,43 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
             )]
 
             # Convert list columns to character strings
-            enrich_dt[, parents := sapply(parents, function(x) paste(x, collapse = ";"))]
-            enrich_dt[, GI := sapply(GI, function(x) paste(x, collapse = ";"))]
+            enrich_dt[, parents := vapply(
+              parents,
+              function(x) paste(x, collapse = ";"),
+              character(1L)
+            )]
+            enrich_dt[, GI := vapply(
+              GI, function(x) paste(x, collapse = ";"),
+              character(1L)
+            )]
 
             # If id2name is provided, create a new column with translated gene IDs
             if (!is.null(id2name)) {
-              enrich_dt[, (new_name_label) := sapply(GI, function(x) paste(na.omit(id2name[x]), collapse = ";"))]
+              enrich_dt[,
+                (new_name_label) := vapply(
+                  GI,
+                  function(x) paste(na.omit(id2name[x]), collapse = ";"),
+                  character(1L)
+                )
+              ]
             }
 
             # Rename columns
             setnames(enrich_dt, old = names(enrich_dt), new = new_names)
 
             # Set columns to scientific format
-            enrich_dt[, `P value` := structure(`P value`, class = "scientific")]
-            enrich_dt[, `Q value (Bonferroni)` := structure(`Q value (Bonferroni)`, class = "scientific")]
-            enrich_dt[, `Q value (Benj. Hoch.)` := structure(`Q value (Benj. Hoch.)`, class = "scientific")]
-            enrich_dt[, `Lowest p value possible` := structure(`Lowest p value possible`, class = "scientific")]
+            enrich_dt[, `P value` := structure(
+              `P value`, class = "scientific"
+            )]
+            enrich_dt[, `Q value (Bonferroni)` := structure(
+              `Q value (Bonferroni)`, class = "scientific"
+            )]
+            enrich_dt[, `Q value (Benj. Hoch.)` := structure(
+              `Q value (Benj. Hoch.)`, class = "scientific"
+            )]
+            enrich_dt[, `Lowest p value possible` := structure(
+              `Lowest p value possible`, class = "scientific"
+            )]
 
             # Add the processed data.table to the list of tables
             v_tables[[sheet_name]] <- enrich_dt
@@ -1710,7 +1957,10 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
           options(openxlsx.numFmt = "#,#0.00")
           openxlsx::write.xlsx(
             v_tables,
-            file = file.path(output_folder, paste(batch_var, group_var, "fctBio.xlsx", sep = "_")),
+            file = file.path(
+              output_folder,
+              paste(batch_var, group_var, "fctBio.xlsx", sep = "_")
+            ),
             asTable = TRUE, tableStyle = "TableStyleLight1"
           )
         }
@@ -1721,14 +1971,21 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
         scl_table <- self$build_cluster_summary_table(verbose = TRUE, p_type = p_type)
 
         # Set numerical columns to scientific format
-        num_cols <- names(scl_table)[6:ncol(scl_table)]
-        scl_table[, (num_cols) := lapply(.SD, function(x) structure(x, class = "scientific")), .SDcols = num_cols]
+        num_cols <- names(scl_table)[6L:ncol(scl_table)]
+        scl_table[,
+          (num_cols) := lapply(.SD,
+            function(x) structure(x, class = "scientific")
+          ),
+          .SDcols = num_cols
+        ]
 
         options(openxlsx.numFmt = "#,#0.00")
         openxlsx::write.xlsx(
           list(
             Summary = scl_table,
-            Occurrences = self$count_gene_per_cluster(id2name = id2name, new_name_label = new_name_label, verbose = TRUE)
+            Occurrences = self$count_gene_per_cluster(
+              id2name = id2name, new_name_label = new_name_label, verbose = TRUE
+            )
           ),
           file = file.path(output_folder, "cluster_summary_fctBio.xlsx"),
           asTable = TRUE, tableStyle = "TableStyleLight1"
@@ -1736,7 +1993,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
       }
     }
   ),
-  private <- list(
+  private = list(
     results = NULL,
     data_nested_id = "uniprot",
     significant_results = NULL,
@@ -1754,6 +2011,9 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint
     gene_ids = NULL,
     term_ids = NULL,
     term_names = NULL,
-    term_types = NULL
+    term_types = NULL,
+    filtering_params = NULL,
+    clustering_params = NULL,
+    classification_params = NULL
   )
 )

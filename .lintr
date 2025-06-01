@@ -1,0 +1,13 @@
+linters: linters_with_defaults(
+  indentation_linter(
+    indent = 2L,
+    hanging_indent_style = "tidy",
+    assignment_as_infix = TRUE
+    ),
+  object_name_linter(
+    styles = c("SNAKE_CASE","snake_case", "CamelCase", "symbols", "dotted.case"),
+    regexes = character()
+    ),
+  line_length_linter(length = 89L)
+  )
+encoding: "UTF-8"
