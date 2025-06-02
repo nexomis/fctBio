@@ -13,7 +13,9 @@ permissions:
 
 jobs:
   lint:
-    runs-on: quay.io/nexomis/r-nexoverse:4.4.2-01.25
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/nexomis/r-nexoverse:4.4.2-01.25
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
