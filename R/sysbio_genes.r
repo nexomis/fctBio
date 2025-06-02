@@ -1,4 +1,4 @@
-#' @include aaa.r
+#' @include globals.r
 #' @include utils.r
 
 NULL

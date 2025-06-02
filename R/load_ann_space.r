@@ -1,4 +1,5 @@
 #' @include utils.r
+#' @include globals.r
 
 NULL
 
@@ -99,7 +100,7 @@ load_ann_space <- function(
         }
 
         if (! compute_parent_genes) {
-          rcols <- c("term", "name", "genes", "parents", "type", "ann_name")
+          ann[, c("term", "name", "genes", "parents", "type", "ann_name")]
         } else {
 
           ann[, parents := lapply(
@@ -140,11 +141,10 @@ load_ann_space <- function(
             ]
           }
           ann[, temp := NULL]
-          rcols <- c("term", "name", "genes", "parents", "parent_genes",
+          ann[, c("term", "name", "genes", "parents", "parent_genes",
             "type", "ann_name"
-          )
+          )]
         }
-        ann[, rcols]
       }
     )
   )

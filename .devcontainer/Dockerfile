@@ -33,6 +33,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   libcurl4-openssl-dev \
   libssl-dev \
   libxml2-dev \
+  pandoc \
   && wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.7.30/quarto-1.7.30-linux-amd64.deb \
   && dpkg -i quarto-1.7.30-linux-amd64.deb \
   && rm -rf /var/lib/apt/lists/*

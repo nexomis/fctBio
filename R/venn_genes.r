@@ -1,5 +1,5 @@
-#' @include aaa.r
 #' @include utils.r
+#' @include globals.r
 
 NULL
 

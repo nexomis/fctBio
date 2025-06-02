@@ -1,5 +1,5 @@
 #' @include fctBio.r
-
+#' @include globals.r
 NULL
 
 #' fctBio ggplot2 theme

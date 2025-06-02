@@ -4,6 +4,7 @@ cowplot
 data.table
 dendextend
 dplyr
+DT
 fastmatch
 ggdendro
 ggh4x
@@ -11,6 +12,7 @@ ggplot2
 import
 logging
 magrittr
+matrixStats
 openxlsx
 parallel
 philentropy

@@ -4,43 +4,45 @@ Title: Objects and methods for functional biology analysis
 Version: 1.1.1
 Author: Julien FOURET <jfouret@nexomis.io>
 biocViews:
-Imports: 
+Imports:
+    R6,
     assertthat,
     collapse,
     cowplot,
     data.table,
     dendextend,
     dplyr,
+    eulerr,
     fastmatch,
     ggdendro,
     ggh4x,
     ggplot2,
     logging,
     magrittr,
+    matrixStats,
     openxlsx,
     parallel,
     philentropy,
     purrr,
     pvclust,
-    R6,
     stringr (>= 1.5.0),
     tibble,
     tidyselect,
-    eulerr
 Maintainer: Julien FOURET <jfouret@nexomis.io>
 Description: This package provide different objects and methods to perform
   functional analysis in biology.
-License: proprietary
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Suggests: 
-    covr,
     DT,
+    covr,
     htmltools,
-    matrixStats,
+    kableExtra,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0),
-    tibble,
-    vdiffr
+    vdiffr,
 VignetteBuilder: knitr, rmarkdown, kableExtra
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
@@ -48,11 +50,12 @@ Collate:
     'globals.r'
     'fctBio.r'
     'utils.r'
+    'enrich.r'
     'class_NestedEnrich.r'
     'load_ann_space.r'
     'query_genes.r'
     'sysbio_genes.r'
     'venn_genes.r'
-Depends: 
+Depends:
     R (>= 4.0)
 RoxygenNote: 7.3.2

@@ -6,3 +6,8 @@ covr
 vdiffr
 devtools
 cyclocomp
+knitr
+rmarkdown
+kableExtra
+S7
+tidyr
