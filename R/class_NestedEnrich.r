@@ -1068,7 +1068,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
         id = private$term_ids,
         reduced_label = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
-          dot, sep = ""
+          dots, sep = ""
         ),
         reduced_label_with_code = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
