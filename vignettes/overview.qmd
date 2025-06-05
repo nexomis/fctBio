@@ -2,7 +2,7 @@
 title: "fctBio Overview"
 author: "Julien FOURET"
 execute:
-  cache: true
+  cache: false
   echo: true
   out.width: "90%"
   fig.width: 6.5
@@ -231,58 +231,10 @@ Below is a visualization of the gene-term incidence matrix.
 
 ```{r}
 #| label: visualize_incidence_matrix
-head_imatrix <- data.frame(test_enrich$get_i_matrix()[1L:20L, 1L:30L])
-
-head_imatrix$Row <- rownames(head_imatrix)
-
-# Transform to long format
-head_imatrix <- tidyr::pivot_longer(
-  head_imatrix,
-  cols = -Row,
-  names_to = "Column",
-  values_to = "Value"
-)
-
-# Plot using ggplot2
-ggplot2::ggplot(
-  head_imatrix, ggplot2::aes(x = Column, y = Row, fill = as.factor(Value))
-) +
-  ggplot2::geom_tile(color = "white") +
-  ggplot2::scale_fill_manual(values = c("0" = "white", "1" = "black")) +
-  ggplot2::theme_minimal() +
-  ggplot2::guides(fill = "none") +
-  ggplot2::labs(x = "Columns", y = "Rows", fill = "Value") +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45.0, hjust = 1.0))
+#| eval: false
+# Arrange first by cluster, then by dendrogram order:
+test_enrich$plot_i_matrix()
 ```
-
-Below is the visualization for the p-value based matrix.
-
-```{r}
-#| label: visualize_pvalue_matrix
-head_pmatrix <- data.frame(test_enrich$get_p_matrix()[1L:20L, ])
-
-head_pmatrix$Row <- rownames(head_pmatrix)
-
-# Transform to long format
-head_pmatrix <- tidyr::pivot_longer(
-  head_pmatrix,
-  cols = -Row,
-  names_to = "Column",
-  values_to = "Value"
-)
-head_pmatrix$Value[is.na(head_pmatrix$Value)] <- 1.0
-# Plot using ggplot2
-ggplot2::ggplot(head_pmatrix, ggplot2::aes(x = Column, y = Row, fill = -log10(Value))) +
-  ggplot2::geom_tile(color = "white") +
-  ggplot2::scale_fill_gradient(high = "black", low = "white") +
-  ggplot2::theme_minimal() +
-  ggplot2::guides(fill = FALSE) +
-  ggplot2::labs(x = "Columns", y = "Rows", fill = "Value") +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45.0, hjust = 1.0))
-
-
-```
-
 
 ## Gene-term incidence clustering and analysis
 

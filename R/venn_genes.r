@@ -151,7 +151,7 @@ extract_venn_zones_content <- function(
       excl_sets <- setdiff(names(sets), incl_sets)
 
       # Find intersection of included sets
-      region_content <- as.character(na.omit(Reduce(intersect, sets[incl_sets])))
+      region_content <- as.character(stats::na.omit(Reduce(intersect, sets[incl_sets])))
 
       # Remove elements present in excluded sets
       if (length(excl_sets) > 0L) {
@@ -250,18 +250,18 @@ get_ext_group <- function(
   switch(mode_ext_groups,
     individual = {
       ext_sets <- lapply(deg_dt_ext$uniprot, function(uniprot_ids) {
-        unique(na.omit(unlist(uniprot_ids)))
+        unique(stats::na.omit(unlist(uniprot_ids)))
       })
       names(ext_sets) <- paste("EXT", deg_dt_ext$batch, deg_dt_ext$group, sep = ":")
       ext_sets
     },
     union = {
-      ext_sets <- list(unique(na.omit(unlist(deg_dt_ext$uniprot))))
+      ext_sets <- list(unique(stats::na.omit(unlist(deg_dt_ext$uniprot))))
       names(ext_sets) <- "EXT:union"
       ext_sets
     },
     intersect = {
-      ext_sets <- list(as.character(na.omit(Reduce(intersect, deg_dt_ext$uniprot))))
+      ext_sets <- list(as.character(stats::na.omit(Reduce(intersect, deg_dt_ext$uniprot))))
       names(ext_sets) <- "EXT:intersect"
       ext_sets
     }
@@ -439,7 +439,7 @@ compute_euler_plot <- function(
 
     # Create sets for this analysis
     sets <- lapply(deg_dt_i$uniprot, function(uniprot_ids) {
-      as.character(na.omit(unlist(uniprot_ids)))
+      as.character(stats::na.omit(unlist(uniprot_ids)))
     })
     names(sets) <- deg_dt_i$group
 
@@ -563,7 +563,7 @@ compute_euler_plot <- function(
               dt <- deg_dt_i_batch_selected[batch == x]
               data.table::data.table(
                 batch = x,
-                uniprot = list(as.character(na.omit(unique(unlist(dt$uniprot)))))
+                uniprot = list(as.character(stats::na.omit(unique(unlist(dt$uniprot)))))
               )
             }
           ))
@@ -573,7 +573,7 @@ compute_euler_plot <- function(
               dt <- deg_dt_i_batch_selected[batch == x]
               data.table::data.table(
                 batch = x,
-                uniprot = list(as.character(na.omit(Reduce(intersect, dt$uniprot))))
+                uniprot = list(as.character(stats::na.omit(Reduce(intersect, dt$uniprot))))
               )
             }
           ))

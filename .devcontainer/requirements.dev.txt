@@ -11,3 +11,4 @@ rmarkdown
 kableExtra
 S7
 tidyr
+quarto

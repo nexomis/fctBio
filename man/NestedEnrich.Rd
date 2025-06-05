@@ -26,6 +26,7 @@ against different annotation backgrounds.
 \item \href{#method-NestedEnrich-build_and_set_i_matrix}{\code{NestedEnrich$build_and_set_i_matrix()}}
 \item \href{#method-NestedEnrich-build_and_set_p_matrix}{\code{NestedEnrich$build_and_set_p_matrix()}}
 \item \href{#method-NestedEnrich-get_i_matrix}{\code{NestedEnrich$get_i_matrix()}}
+\item \href{#method-NestedEnrich-plot_i_matrix}{\code{NestedEnrich$plot_i_matrix()}}
 \item \href{#method-NestedEnrich-get_p_matrix}{\code{NestedEnrich$get_p_matrix()}}
 \item \href{#method-NestedEnrich-build_and_set_hclust}{\code{NestedEnrich$build_and_set_hclust()}}
 \item \href{#method-NestedEnrich-get_hclust}{\code{NestedEnrich$get_hclust()}}
@@ -375,6 +376,26 @@ get incidence matrix
 
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-NestedEnrich-plot_i_matrix"></a>}}
+\if{latex}{\out{\hypertarget{method-NestedEnrich-plot_i_matrix}{}}}
+\subsection{Method \code{plot_i_matrix()}}{
+plot incidence matrix
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{NestedEnrich$plot_i_matrix(...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{...}}{passed to get_label_dict}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+ggplot object
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-NestedEnrich-get_p_matrix"></a>}}
 \if{latex}{\out{\hypertarget{method-NestedEnrich-get_p_matrix}{}}}
 \subsection{Method \code{get_p_matrix()}}{
@@ -614,7 +635,7 @@ number of gene per term is used for ordering.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-translte diuctionary
+translate dictionary
 }
 }
 \if{html}{\out{<hr>}}

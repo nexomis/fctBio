@@ -181,30 +181,30 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       }
       # get gene names to ID
       private$gene_ids <-
-        sort(na.omit(unique(c(all_genes_raw_ann, all_genes_inputs))))
+        sort(stats::na.omit(unique(c(all_genes_raw_ann, all_genes_inputs))))
 
 
       logging::loginfo("match gene ids to integer")
       private$raw_ann$genes <- lapply(
         private$raw_ann$genes,
         function(x) {
-          fastmatch::fmatch(na.omit(x), private$gene_ids)
+          fastmatch::fmatch(stats::na.omit(x), private$gene_ids)
         }
       )
       if (! classic) {
         private$raw_ann$parent_genes <- lapply(
           private$raw_ann$parent_genes,
           function(x) {
-            fastmatch::fmatch(na.omit(x), private$gene_ids)
+            fastmatch::fmatch(stats::na.omit(x), private$gene_ids)
           }
         )
       }
       nested_dt$gene_inputs <- lapply(nested_dt$gene_inputs, function(x) {
-        fastmatch::fmatch(na.omit(x), private$gene_ids)
+        fastmatch::fmatch(stats::na.omit(x), private$gene_ids)
       })
       if (! is.null(data_univ_col)) {
         nested_dt$gene_universe <- lapply(nested_dt$gene_universe, function(x) {
-          fastmatch::fmatch(na.omit(x), private$gene_ids)
+          fastmatch::fmatch(stats::na.omit(x), private$gene_ids)
         })
       }
 
@@ -216,7 +216,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       private$term_types <- private$raw_ann$type
       private$raw_ann$parents <- lapply(private$raw_ann$parents, function(x) {
         as.integer(
-          na.omit(fastmatch::fmatch(x, private$term_ids))
+          stats::na.omit(fastmatch::fmatch(x, private$term_ids))
         )
       })
       private$raw_ann$term <- fastmatch::fmatch(
@@ -242,7 +242,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       logging::loginfo("Enrichment loop")
 
       fx <- function(i, ann_name_input) {
-        nested_dt_row <- as.data.table(nested_dt[i, , drop = FALSE])
+        nested_dt_row <- data.table::as.data.table(nested_dt[i, , drop = FALSE])
         nested_dt_row$ann_name <- ann_name_input
         ann <- raw_ann[ann_name == ann_name_input, ]
         ann[, ann_name := NULL]
@@ -263,7 +263,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
         nested_dt_row
       }
 
-      private$results <- rbindlist(
+      private$results <- data.table::rbindlist(
         lapply(
           combinations_list,
           function(x) (fx(x[["i"]], x[["ann_name"]]))
@@ -416,7 +416,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
 
       private$significant_results[
         ,
-        significant := fifelse(
+        significant := data.table::fifelse(
           is.na(.SD[[p_type]]) | .SD[[p_type]] > p_max_enrich, FALSE, TRUE
         )
       ]
@@ -566,9 +566,9 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
         ,
         .(term, batch, group, type, get(p_type))
       ]
-      setnames(dt, names(dt)[5L], p_type)
+      data.table::setnames(dt, names(dt)[5L], p_type)
       dt[, col := paste(batch, group, type, sep = "_")]
-      dt_wide <- dcast(dt, term ~ col, value.var = p_type)
+      dt_wide <- data.table::dcast(dt, term ~ col, value.var = p_type)
 
       rn <- dt_wide$term
       dt_wide[, term := NULL]
@@ -581,6 +581,55 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
     #' get incidence matrix
     get_i_matrix = function() {
       private$i_matrix
+    },
+
+    #' @description
+    #' plot incidence matrix
+    #' @param ... passed to get_label_dict
+    #' @return ggplot object
+    plot_i_matrix = function(...) {
+
+      term2label <- self$get_label_dict(...)
+
+      if (is.null(private$i_matrix)) {
+        message("No incidence matrix found.")
+        return(NULL)
+      }
+
+      r_clust <- hclust(dist(private$i_matrix, method = "binary"), method = "ward.D2")
+      c_clust <- hclust(dist(t(private$i_matrix), method = "binary"), method = "ward.D2")
+
+      imatrix <- tibble::as.tibble(
+        private$i_matrix
+      )
+      imatrix$Row <- rownames(private$i_matrix)
+      # Transform to long format
+      long_imatrix <- tidyr::pivot_longer(
+        imatrix,
+        cols = -.data$Row,
+        names_to = "Column",
+        values_to = "Value"
+      ) %>%
+        dplyr::mutate(
+          Row = factor(
+            term2label[.data$Row],
+            term2label[levels = r_clust$labels[r_clust$order]]
+          ),
+          Column = factor(.data$Column, levels = c_clust$labels[c_clust$order]
+          )
+        ) %>%
+        dplyr::arrange(.data$Row, .data$Column)
+
+      # Plot using ggplot2
+      ggplot2::ggplot(
+        long_imatrix, ggplot2::aes(x = .data$Column, y = .data$Row, fill = .data$Value)
+      ) +
+        ggplot2::geom_tile(color = "white", alpha = 1L) +
+        fctBio::THEME_NEXOMIS +
+        ggplot2::scale_fill_manual(values = c("white", "black")) +
+        ggplot2::guides(fill = "none", x  = "none") +
+        ggplot2::labs(x = NULL, y = NULL, fill = NULL) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45.0, hjust = 1.0))
     },
 
     #' @description
@@ -1004,14 +1053,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
     #' @param append_sep separator between ids
     #' @param reduced_label_max_size maximum length for term label
     #' number of gene per term is used for ordering.
-    #' @return translte diuctionary
+    #' @return translate dictionary
     get_label_dict = function(
       to = "reduced_label_with_code",
       append_cluster_id = FALSE,
       append_sep = "#",
       reduced_label_max_size = 40L
     ) {
-      results <- setNames(switch(to,
+      results <- stats::setNames(switch(to,
         id = private$term_ids,
         reduced_label = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
@@ -1148,7 +1197,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       df_size <- df_size[order(-Ngenes)]
       term_order_per_ngenes <- as.character(df_size$term)
 
-      df_size <- melt(df_size, id.vars = c("term", "cluster"))
+      df_size <- data.table::melt(df_size, id.vars = c("term", "cluster"))
 
       if (ordered_by_pval) {
         term_order <- terms_order_pval
@@ -1517,27 +1566,27 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
 
       cl_sum <- scl_table[, .(min_q_val_cl = min(tmp_p)), by = cluster]
       cl2min <- cl_sum$min_q_val_cl
-      setattr(cl2min, "names", as.character(cl_sum$cluster))
+      data.table::setattr(cl2min, "names", as.character(cl_sum$cluster))
       scl_table[["min_q_val_cl"]] <- cl2min[as.character(scl_table[["cluster"]])]
-      setattr(scl_table[["min_q_val_cl"]], "names", NULL)
+      data.table::setattr(scl_table[["min_q_val_cl"]], "names", NULL)
 
       cl_sum <- scl_table[, .(min_q_val_term = min(tmp_p)), by = term]
       cl2min <- cl_sum$min_q_val_term
-      setattr(cl2min, "names", as.character(cl_sum$term))
+      data.table::setattr(cl2min, "names", as.character(cl_sum$term))
       scl_table[["min_q_val_term"]] <- cl2min[as.character(scl_table[["term"]])]
-      setattr(scl_table[["min_q_val_term"]], "names", NULL)
+      data.table::setattr(scl_table[["min_q_val_term"]], "names", NULL)
 
       scl_table[, c("batch", "group", "type", "tmp_p") := NULL]
 
-      wide_scl_table <- dcast(scl_table, ... ~ category,
+      wide_scl_table <- data.table::dcast(scl_table, ... ~ category,
         value.var = p_type
       )
 
       data.table::setorder(wide_scl_table, min_q_val_cl, min_q_val_term)
 
-      setattr(wide_scl_table$cluster, "names", NULL)
+      data.table::setattr(wide_scl_table$cluster, "names", NULL)
       if (verbose) {
-        setnames(wide_scl_table,
+        data.table::setnames(wide_scl_table,
           old = c(
             "cluster", "term", "name", "ann_name",
             "Ngenes", "min_q_val_cl", "min_q_val_term"
@@ -1693,14 +1742,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
               enrich_dt[,
                 (new_name_label) := vapply(
                   GI,
-                  function(x) paste(na.omit(id2name[x]), collapse = ";"),
+                  function(x) paste(stats::na.omit(id2name[x]), collapse = ";"),
                   character(1L)
                 )
               ]
             }
 
             # Rename columns
-            setnames(enrich_dt, old = names(enrich_dt), new = new_names)
+            data.table::setnames(enrich_dt, old = names(enrich_dt), new = new_names)
 
             # Set columns to scientific format
             enrich_dt[, `P value` := structure(

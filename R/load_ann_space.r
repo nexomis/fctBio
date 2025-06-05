@@ -114,7 +114,7 @@ load_ann_space <- function(
             }
           )]
 
-          named_genes <- setNames(ann$genes, ann$term)
+          named_genes <- stats::setNames(ann$genes, ann$term)
           ann[, temp := lapply(parents, function(x) named_genes[x])]
           if (use_parents_union) {
             ann[, parent_genes :=

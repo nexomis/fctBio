@@ -62,7 +62,7 @@ enrich <- function(
 
   logging::logdebug("test Loading lists")
 
-  allgenes <- na.omit(unique(unlist(ann$genes)))
+  allgenes <- stats::na.omit(unique(unlist(ann$genes)))
 
   if (is.null(gene_universe)) {
     universe <- allgenes
@@ -159,7 +159,7 @@ enrich <- function(
   }
 
   get_pval_fisher <- function(n_genes, n_gi, parent_n_genes, parent_n_gi) {
-    phyper(
+    stats::phyper(
       n_gi - 1L,
       parent_n_gi,
       parent_n_genes - parent_n_gi,
@@ -210,10 +210,10 @@ enrich <- function(
 
   logging::logdebug("BH pvalue correction")
 
-  ann[pmin < lim_corr, qval_bh := p.adjust(pval, method = "BH")] # nolint
+  ann[pmin < lim_corr, qval_bh := stats::p.adjust(pval, method = "BH")] # nolint
   logging::logdebug("Bonferoni pvalue correction")
 
-  ann[pmin < lim_corr, qval_bonferroni := p.adjust(pval, method = "bonferroni")] # nolint # nolint
+  ann[pmin < lim_corr, qval_bonferroni := stats::p.adjust(pval, method = "bonferroni")] # nolint # nolint
 
   logging::logdebug("Sorting & output")
 

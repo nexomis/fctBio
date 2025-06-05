@@ -1,10 +1,8 @@
 #' @importFrom fastmatch %fin%
-#' @importFrom stats na.omit
-#' @importFrom stats p.adjust
-#' @importFrom stats phyper
-#' @importFrom stats setNames
-#' @import data.table
-#' @import utils
+#' @importFrom magrittr %>%
+#' @importFrom data.table :=
+#' @importFrom data.table .SD
+#' @importFrom rlang .data
 
 utils::globalVariables(
   c(
