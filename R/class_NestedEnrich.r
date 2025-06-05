@@ -1060,21 +1060,25 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       append_sep = "#",
       reduced_label_max_size = 40L
     ) {
+      dots <- ifelse(
+        stringr::str_length(private$term_names) <= reduced_label_max_size,
+        "", "..."
+      )
       results <- stats::setNames(switch(to,
         id = private$term_ids,
         reduced_label = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
-          "...", sep = ""
+          dot, sep = ""
         ),
         reduced_label_with_code = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
-          "...",
+          dots,
           private$raw_ann$ann_name,
           sep = ":"
         ),
         reduced_label_with_id = paste(
           stringr::str_sub(private$term_names, end = reduced_label_max_size),
-          "...",
+          dots,
           private$term_ids,
           sep = ":"
         ),
