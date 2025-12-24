@@ -54,7 +54,8 @@ NULL
 #'     keys in `ann_sources`.
 #' @export
 load_ann_space <- function(
-  ann_sources, ann_types, compute_parent_genes = TRUE,
+  ann_sources, ann_types = vector(mode = "character"),
+  compute_parent_genes = TRUE,
   use_parents_union = TRUE
 ) {
   data.table::rbindlist(

@@ -1,6 +1,9 @@
 ---
 title: "fctBio Overview"
 author: "Julien FOURET"
+format:
+  html:
+    embed-resources: true
 execute:
   cache: false
   echo: true

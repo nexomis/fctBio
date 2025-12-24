@@ -76,8 +76,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
     #' @param hard_pmin_filter Boolean; if TRUE, removes gene sets with p-values
     #'   below `lim_pmin`.
     #' @param classic Boolean; if TRUE, performs analysis relative to the universe
-    #'   of genes.
-    #' @param ... Additional arguments passed to the `enrich` function.
+    #'   of genes. else use parents-genes method.
     #' @return A new `NestedEnrich` object initialized with the provided data and
     #'   settings.
     initialize = function(
@@ -86,7 +85,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
       group_labels = NULL, data_col = "data", data_univ_col = NULL,
       data_nested_id = "uniprot", regex = "-.*", lim_pmin = 0.05,
       classic = FALSE, log_level = "WARN",
-      hard_pmin_filter = TRUE, ...
+      hard_pmin_filter = TRUE
     ) {
 
       logging::basicConfig(level = log_level)
@@ -269,6 +268,16 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
           function(x) (fx(x[["i"]], x[["ann_name"]]))
         ), fill = TRUE
       )
+
+      enrichment_params <- list(
+        compute_parent_genes = compute_parent_genes,
+        use_parents_union = use_parents_union,
+        regex = regex,
+        classic = classic,
+        lim_pmin = lim_pmin,
+        hard_pmin_filter = hard_pmin_filter
+      )
+
       logging::loginfo("Enrichment terminated.")
 
       self$filter_and_set_significant_results()
@@ -1832,6 +1841,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
     term_ids = NULL,
     term_names = NULL,
     term_types = NULL,
+    enrichment_params = NULL,
     filtering_params = NULL,
     clustering_params = NULL,
     classification_params = NULL

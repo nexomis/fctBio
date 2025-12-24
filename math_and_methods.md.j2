@@ -1,0 +1,68 @@
+## Methods
+
+### Gene Set Enrichment Analysis
+
+Gene set enrichment analysis was performed to identify statistically over-represented terms in lists of genes of interest. The core statistical test was the hypergeometric test, as implemented in `stats::phyper`.
+{% if enrichment.classic %}
+The enrichment of each term was assessed against a global gene universe.
+{% else %}
+A topology-aware parent-child approach was used, where the enrichment of a term was assessed relative to its parent term(s) in the annotation hierarchy. For terms without defined parents, the global gene universe was used as the background.
+{% endif %}
+
+Raw p-values were calculated.
+{% if filtering.p_type == "qval_bh" %}
+These p-values were then adjusted using the Benjamini-Hochberg (BH) correction method.
+{% elif filtering.p_type == "qval_bonferroni" %}
+These p-values were then adjusted using the Bonferroni correction method.
+{% endif %}
+{% if filtering.p_type != "pval" %}
+Adjustments were applied to terms whose minimum achievable p-value (`pmin`) was less than {{ enrichment.lim_pmin }}.
+{% endif %}
+{% if enrichment.hard_pmin_filter %}
+Terms with a `pmin` greater than {{ enrichment.lim_pmin }} were excluded from the results{% if filtering.p_type != "pval" %} prior to p-value adjustment{% endif %}.
+{% else %}
+Terms with a `pmin` greater than {{ enrichment.lim_pmin }} were retained in the output{% if filtering.p_type != "pval" %} but p-value adjustments were not applied if this limit was exceeded{% endif %}.
+{% endif %}
+Significant enrichment was determined based on a {% if filtering.p_type == "qval_bh" %}q-value (BH){% elif filtering.p_type == "qval_bonferroni" %}q-value (Bonferroni){% else %}p-value{% endif %} threshold of {{ filtering.p_max_enrich }}.
+
+### Hierarchical Clustering of Enriched Terms
+
+Significant terms identified from the enrichment analysis were subjected to hierarchical clustering to group terms with similar characteristics.
+
+{% if clustering.matrix_type == "incidence" %}
+Clustering was performed on a binary term-gene incidence matrix.
+{% elif clustering.matrix_type == "pval" %}
+Clustering was based on a matrix of p-values ({{ 'transformed by ' ~ (clustering.pval_fun | string) if clustering.pval_fun else '' }}) for terms across the different experimental conditions.
+{% elif clustering.matrix_type == "both" %}
+Clustering utilized a combined matrix of term-gene incidences and p-values ({{ 'transformed by ' ~ (clustering.pval_fun | string) if clustering.pval_fun else '' }}) across conditions.
+{% endif %}
+
+{% if clustering.dim_reduce and clustering.dim_reduce > 0 %}
+Prior to clustering, dimensionality reduction was performed using Principal Component Analysis (PCA). Data was {% if clustering.prcomp_args.center == false %}not {% endif %}centered{% if clustering.prcomp_args.scale_dot == true %} and scaled to unit variance{% else %} but not scaled{% endif %} prior to PCA.
+{% if clustering.dim_reduce < 1 %}
+Principal components explaining at least {{ clustering.dim_reduce * 100 }}% of the variance were retained.
+{% else %}
+The top {{ clustering.dim_reduce }} principal components were retained.
+{% endif %}
+{% endif %}
+
+Pairwise distances between {% if clustering.dim_reduce and clustering.dim_reduce > 0 %}principal components of terms{% else %}terms{% endif %} were calculated using the `{{ clustering.method_dist }}` metric.
+{% if clustering.using_pvclust %}
+Hierarchical clustering was then performed using the `pvclust` R package with the `{{ clustering.method_hclust }}` linkage method. Cluster stability was assessed using bootstrap resampling, yielding Approximately Unbiased (AU) and Bootstrap Probability (BP) p-values for each cluster.
+{% else %}
+Agglomerative hierarchical clustering was performed using the `{{ clustering.method_hclust }}` linkage method.
+{% endif %}
+
+Discrete clusters were defined from the resulting dendrogram.
+{% if clustering.using_pvclust %}
+Clusters were identified using `pvclust::pvpick` with an alpha threshold of
+{{ classification.value }} for the `{{ classification.pvclust_pv | upper }}` p-values.
+The resulting clusters were refined based on size, requiring a minimum of {{ classification.min_size }} terms and a maximum of {{ classification.max_size }} terms.
+{% if classification.max_size_only_to_parents or classification.min_size_only_to_children %}
+These size constraints were applied with consideration for cluster hierarchy (parents/children).
+{% endif %}
+Redundancy due to overlapping terms among clusters was resolved by assigning terms to the `{{ classification.rm_redundancy_method }}` cluster.
+
+{% else %}
+The dendrogram was cut to yield {{ classification.value }} distinct clusters.
+{% endif %}
