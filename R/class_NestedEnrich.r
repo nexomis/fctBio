@@ -1730,18 +1730,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
               pmin
             )]
 
-            # Convert list columns to character strings
+            # Convert parents to string
             enrich_dt[, parents := vapply(
               parents,
               function(x) paste(x, collapse = ";"),
               character(1L)
             )]
-            enrich_dt[, GI := vapply(
-              GI, function(x) paste(x, collapse = ";"),
-              character(1L)
-            )]
 
-            # If id2name is provided, create a new column with translated gene IDs
+            # If id2name is provided, translate gene IDs BEFORE converting to string
             if (!is.null(id2name)) {
               enrich_dt[,
                 (new_name_label) := vapply(
@@ -1751,6 +1747,12 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
                 )
               ]
             }
+
+            # Convert GI to string after translation
+            enrich_dt[, GI := vapply(
+              GI, function(x) paste(x, collapse = ";"),
+              character(1L)
+            )]
 
             # Rename columns
             data.table::setnames(enrich_dt, old = names(enrich_dt), new = new_names)
