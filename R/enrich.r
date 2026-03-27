@@ -126,6 +126,7 @@ enrich <- function(
   if (classic) {
     ann$parent_NGI <- k
     ann$parent_Ngenes <- n
+    ann$parent_genes <- NULL
   } else {
 
     ann$parent_genes <- lapply(
