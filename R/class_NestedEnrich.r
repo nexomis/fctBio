@@ -269,15 +269,6 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
         ), fill = TRUE
       )
 
-      enrichment_params <- list(
-        compute_parent_genes = compute_parent_genes,
-        use_parents_union = use_parents_union,
-        regex = regex,
-        classic = classic,
-        lim_pmin = lim_pmin,
-        hard_pmin_filter = hard_pmin_filter
-      )
-
       logging::loginfo("Enrichment terminated.")
 
       self$filter_and_set_significant_results()
