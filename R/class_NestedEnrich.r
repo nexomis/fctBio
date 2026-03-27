@@ -313,14 +313,14 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
           new_dt[, name := vapply(
             term,
             function(x) {
-              private$term_names[x]
+              as.character(private$term_names[x])
             },
             character(1L),
             USE.NAMES = FALSE
           )]
           new_dt[, type := vapply(
             term, function(x) {
-              private$term_types[x]
+              as.character(private$term_types[x])
             },
             character(1L),
             USE.NAMES = FALSE
@@ -328,7 +328,7 @@ NestedEnrich <- R6::R6Class("NestedEnrich", # nolint: cyclocomp_linter.
           new_dt[, term := vapply(
             term,
             function(x) {
-              private$term_ids[x]
+              as.character(private$term_ids[x])
             },
             character(1L),
             USE.NAMES = FALSE
